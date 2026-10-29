@@ -14,3 +14,6 @@ replay-forge = "replay_forge.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["replay_forge*"]
+
+[tool.setuptools.package-data]
+replay_forge = ["web/*.html"]
