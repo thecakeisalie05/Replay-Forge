@@ -1,0 +1,3 @@
+export interface Replay {id:string;path:string;name:string;size:number;mtimeMs:number;sha256:string;status:string}
+export interface Progress{found:number;updated:number;errors:number;active:boolean}
+declare global{interface Window{replayForge?:{chooseFolder():Promise<string|null>;importFolder(path:string):Promise<Progress>;getLibrary():Promise<Replay[]>;onProgress(fn:(v:Progress)=>void):()=>void}}}
