@@ -1,0 +1,27 @@
+name: Electron Windows installer
+on:
+  workflow_dispatch:
+  push:
+    tags: ['desktop-v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ReplayForge-Electron-Windows
+          path: release/*.exe
+      - name: Publish preview release
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: gh release create "${{ github.ref_name }}" release/*.exe --prerelease --title "Replay Forge Electron ${{ github.ref_name }}" --notes "Electron desktop foundation preview; directory indexing and library UI implemented, replay decoder and analytics pending."
