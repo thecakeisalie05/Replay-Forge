@@ -29,7 +29,9 @@ python -m replay_forge scan "C:\Path\To\Rocket League\Demos"
 python -m replay_forge serve --port 8765
 ```
 
-API: `http://127.0.0.1:8765/replays`, `/summary`, `/health`. The scanner reads only replay file metadata and hashes, not decoded gameplay. The database defaults to `~/.replay_forge/library.sqlite3`.
+Open **http://127.0.0.1:8765/** in your browser for the prototype library (table/grid/search). API: `/replays`, `/summary`, `/health`.
+
+Run tests using `python -m unittest discover -s tests -v`. The scanner reads only replay file metadata and hashes, not decoded gameplay. The database defaults to `~/.replay_forge/library.sqlite3`.
 
 Once parser integration is done, replay metadata and derived match data will be populated by an independent worker. The application must remain functional when individual replay files are corrupt or unsupported.
 
