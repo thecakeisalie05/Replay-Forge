@@ -1,0 +1,2 @@
+const {contextBridge,ipcRenderer}=require('electron');
+contextBridge.exposeInMainWorld('replayForge',{chooseFolder:()=>ipcRenderer.invoke('choose-folder'),importFolder:(folder)=>ipcRenderer.invoke('import-folder',folder),getLibrary:()=>ipcRenderer.invoke('get-library'),onProgress:(fn)=>{const handler=(_e,data)=>fn(data);ipcRenderer.on('scan-progress',handler);return ()=>ipcRenderer.removeListener('scan-progress',handler)}});
