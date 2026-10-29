@@ -1,46 +1,49 @@
 # Replay Forge
 
-**Local-first Rocket League replay library, analytics engine, and replay viewer.**
+A local-first Rocket League replay studio. **Electron + React + TypeScript** desktop foundation with a restrained technical dark UI, navigation rail, searchable replay library, detail inspector, and import progress.
 
-Replay Forge aims to import an entire directory of `.replay` files and let players navigate, compare, visualize, and understand improvements across months or years.
+## Desktop (current path)
 
-## Status
-
-**Architecture and first library API scaffold.** The current backend discovers and catalogs replay files, fingerprints them, indexes them in SQLite, supports filtering, and exposes the catalog over HTTP. **It does not yet decode physics frames or provide a 3D viewer.** Never interpret file-count or filesize metrics as gameplay performance.
-
-## Product goals
-
-- Import a replay folder recursively, including new or changed files on rescan.
-- Offer list, dense table, calendar, timeline, and thumbnail/grid library views with powerful filters.
-- Track multi-match metrics with time-range, playlist, role, and opponent filters.
-- Reconstruct game state through a synchronized 3D timeline with adjustable speed, multi-camera playback, overlays and event bookmarks.
-- Overlay paths, velocity, boost pickups, contacts, jump events, inferred accelerations, and physics-derived forces (with clearly stated assumptions).
-- Explain the evidence and confidence for mechanics and inferred events, never turn heuristics into ground truth.
-- Offline-first operation; no mandatory replay uploads.
-
-Read [docs/architecture.md](docs/architecture.md), [docs/metrics.md](docs/metrics.md), and [docs/roadmap.md](docs/roadmap.md).
-
-## Prototype API
-
-Requirements: Python 3.11+. No third-party dependencies for the initial scanner/API.
+Requirements: Node.js 20.19+ or 22+, Windows 10/11.
 
 ```powershell
-python -m replay_forge scan "C:\Path\To\Rocket League\Demos"
-python -m replay_forge serve --port 8765
+npm install
+npm run dev
 ```
 
-Open **http://127.0.0.1:8765/** in your browser for the prototype library (table/grid/search). API: `/replays`, `/summary`, `/health`.
+Build a Windows installer:
 
-Run tests using `python -m unittest discover -s tests -v`. The scanner reads only replay file metadata and hashes, not decoded gameplay. The database defaults to `~/.replay_forge/library.sqlite3`.
+```powershell
+npm run build
+```
 
-Once parser integration is done, replay metadata and derived match data will be populated by an independent worker. The application must remain functional when individual replay files are corrupt or unsupported.
+Installer output: `release/`. GitHub Actions: [Electron Windows installer](.github/workflows/electron-windows.yml) (manually run for an installer build artifact, or tag `desktop-v*` to trigger a prerelease). A GitHub-hosted Windows build is **not yet verified**.
 
-## Design principles
+### Currently implemented
 
-- Preserve raw parser output; store normalized values separately with parser and detection version.
-- Each metric has a definition, unit, coverage rate, and provenance.
-- Always group or normalize results by game mode (1v1/2v2/3v3), duration, and player identity.
-- Keep detection algorithms independently testable with labeled replay clips.
-- Parsing and indexing should be background jobs with cancellation, progress and error reporting.
-- All potentially destructive operations require explicit consent.
-- Default to read-only source directories.
+- Native Electron window with context-isolated, sandboxed renderer and narrow IPC bridge
+- React/TypeScript dark UI in the shared studio design language
+- Library table and grid, filename/path search, contextual file inspector
+- Directory picker, recursive `.replay` indexing, incremental rescans, SHA-256 fingerprinting, progress messages
+- Persistent local catalog in Electron app user-data folder (JSON, an interim store)
+
+### Not yet implemented
+
+- Boxcars/Rocket League physics decoding
+- Advanced metadata and real match statistics
+- Analytics dashboard, replay reconstruction, Three.js viewer, mechanics detection
+- Scalable SQLite data layer, automatic parser installation, cancellation and paging
+
+These planned surfaces are **explicitly marked unavailable** in the app. Do not mistake indexed file metadata for game metrics.
+
+## Legacy prototype
+
+The `replay_forge/` Python module is a previous proof-of-concept scanner and HTTP library API, **not the desktop app**. The previous Python/Tkinter Windows packaging pipeline is deprecated; development should target Electron.
+
+## Product specification
+
+- [Architecture](docs/architecture.md)
+- [Metrics and definitions](docs/metrics.md)
+- [Roadmap](docs/roadmap.md)
+
+Never modify imported `.replay` files. Keep source replays on disk, compute derived data locally, record detector provenance and uncertainty.
