@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Replay Forge — Library</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#f0f4fa;background:#0d111b}
+*{box-sizing:border-box}body{margin:0}header{padding:24px 32px;background:#141b2a;border-bottom:1px solid #303c52}h1{font-size:27px;letter-spacing:-.8px;margin:0}p{color:#aab8ce}main{max-width:1350px;margin:auto;padding:24px}section{background:#151e2d;border:1px solid #2b3a52;border-radius:14px;padding:20px;margin-bottom:18px}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}input,select,button{background:#101724;border:1px solid #3b4c68;border-radius:8px;color:#f0f4fa;padding:11px;font:inherit}input{min-width:260px}button{cursor:pointer}button:hover{background:#233450}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin:18px 0}.stat{background:#111a2b;border:1px solid #31405c;border-radius:10px;padding:18px}.stat b{display:block;font-size:27px;margin-top:8px}.muted{color:#aab8ce;font-size:13px}table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;color:#aab8ce;font-weight:500}td,th{padding:14px 9px;border-bottom:1px solid #2e3b50}td.path{word-break:break-all;max-width:650px}td code{font-size:12px;color:#a7cfff}.scroll{overflow:auto}.empty{padding:36px;text-align:center;color:#adbad2}.chip{background:#243148;border:1px solid #465877;border-radius:20px;font-size:11px;padding:5px 9px;color:#d0d9eb}.notice{border-left:3px solid #e1ac58;padding:8px 13px;background:#231d1b;color:#f0d9ad;font-size:13px}.views{display:flex;gap:8px}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:12px}.card{border:1px solid #304360;border-radius:12px;padding:14px;background:#10192b;overflow-wrap:anywhere}.card h3{margin:5px 0;font-size:14px}.hide{display:none}
+</style></head>
+<body><header><h1>REPLAY FORGE <span class="chip">Library prototype</span></h1><p>Local-first Rocket League replay analysis</p></header>
+<main><div class="notice">Indexing is live. Physics decoding, gameplay metrics and the 3D viewer are planned, not yet available.</div>
+<div class="stats"><div class="stat"><span class="muted">Indexed replays</span><b id="total">—</b></div><div class="stat"><span class="muted">Catalog size</span><b id="size">—</b></div><div class="stat"><span class="muted">Decoded matches</span><b id="decoded">0</b></div><div class="stat"><span class="muted">Physics metrics</span><b id="physics">Unavailable</b></div></div>
+<section><div class="top"><h2>Replay library</h2><div class="controls"><input id="search" aria-label="Search replay filenames" placeholder="Search replay filename or path..."/><select id="sort" aria-label="Sort"><option value="recent">Recently indexed</option><option value="name">Filename</option><option value="size">File size</option></select><div class="views"><button id="tableBtn" aria-pressed="true">Table</button><button id="gridBtn" aria-pressed="false">Grid</button></div><button id="refresh">Refresh</button></div></div>
+<div id="loading" class="muted">Loading library...</div>
+<div id="tableview" class="scroll"><table><thead><tr><th>File</th><th>Size</th><th>Decode status</th><th>Indexed</th></tr></thead><tbody id="tbody"></tbody></table></div>
+<div id="gridview" class="cards hide"></div><div class="top" style="margin-top:18px"><span id="count" class="muted"></span><div class="controls"><button id="prev">Previous</button><button id="next">Next</button></div></div>
+</section><p class="muted">To import replays, run <code>python -m replay_forge scan "C:\Path\To\Demos"</code> locally, then refresh this page.</p></main>
+<script>
+const $=id=>document.getElementById(id);
+const PAGE=100; let offset=0, results=[], view='table';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const size=n=>n>1048576?(n/1048576).toFixed(1)+' MB':(n/1024).toFixed(1)+' KB';
+async function load(){ $('loading').textContent='Loading...'; try {
+const query=new URLSearchParams({limit:PAGE,offset,search:$('search').value});
+const [list,sum]=await Promise.all([fetch('/replays?'+query).then(r=>r.json()),fetch('/summary').then(r=>r.json())]);
+results=list.items; $('total').textContent=sum.replays_indexed.toLocaleString(); $('size').textContent=size(sum.total_bytes);$('decoded').textContent=sum.decoded_matches;$('physics').textContent=sum.physics_metrics_available?'Available':'Unavailable';
+render();$('loading').textContent='';
+}catch(e){$('loading').textContent='Could not reach Replay Forge backend: '+e.message;}}
+function render(){let items=[...results],sort=$('sort').value;if(sort==='name')items.sort((a,b)=>a.path.localeCompare(b.path));if(sort==='size')items.sort((a,b)=>b.size_bytes-a.size_bytes);
+$('tbody').innerHTML=items.map(r=>'<tr><td class="path"><code>'+esc(r.path)+'</code></td><td>'+size(r.size_bytes)+'</td><td><span class="chip">'+esc(r.status)+'</span></td><td>'+esc(r.indexed_at.slice(0,19))+'</td></tr>').join('')||'<tr><td colspan="4" class="empty">No matching replay files. Run the directory scanner first.</td></tr>';
+$('gridview').innerHTML=items.map(r=>'<article class="card"><h3>'+esc(r.path.split(/[\\/]/).pop())+'</h3><p class="muted">'+esc(r.path)+'</p><p>'+size(r.size_bytes)+' · '+esc(r.indexed_at.slice(0,10))+'</p><span class="chip">'+esc(r.status)+'</span></article>').join('')||'<div class="empty">No matching replays</div>';
+$('count').textContent=items.length+' shown, offset '+offset;
+$('prev').disabled=offset===0;$('next').disabled=items.length<PAGE;
+$('tableview').classList.toggle('hide',view!=='table');$('gridview').classList.toggle('hide',view!=='grid');}
+let timer; $('search').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>{offset=0;load()},200)});
+$('sort').addEventListener('change',render);$('refresh').onclick=load;
+$('prev').onclick=()=>{offset=Math.max(0,offset-PAGE);load()};$('next').onclick=()=>{offset+=PAGE;load()};
+$('tableBtn').onclick=()=>{view='table';$('tableBtn').setAttribute('aria-pressed','true');$('gridBtn').setAttribute('aria-pressed','false');render()};
+$('gridBtn').onclick=()=>{view='grid';$('gridBtn').setAttribute('aria-pressed','true');$('tableBtn').setAttribute('aria-pressed','false');render()};
+load();
+</script></body></html>
