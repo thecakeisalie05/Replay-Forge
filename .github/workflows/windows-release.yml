@@ -1,6 +1,11 @@
 name: Windows installer
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish v0.1.0-preview as a prerelease after a successful build'
+        type: boolean
+        default: false
   push:
     tags:
       - 'v*'
@@ -40,9 +45,9 @@ jobs:
             dist/ReplayForge.exe
             dist-installer/*.exe
       - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          gh release create "${{ github.ref_name }}" dist-installer/*.exe dist/ReplayForge.exe --title "Replay Forge ${{ github.ref_name }}" --notes "Windows library foundation preview. Directory indexing is available; replay decoding, analytics and 3D viewing are not implemented yet." --prerelease
+          gh release create "v0.1.0-preview" dist-installer/*.exe dist/ReplayForge.exe --target "${{ github.sha }}" --title "Replay Forge v0.1.0-preview" --notes "Windows library foundation preview. Directory indexing is available; replay decoding, analytics and 3D viewing are not implemented yet." --prerelease
