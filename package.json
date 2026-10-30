@@ -7,7 +7,8 @@
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "build": "tsc --noEmit && vite build && electron-builder --win nsis --publish never",
     "start": "electron .",
-    "check": "tsc --noEmit && vite build"
+    "check": "tsc --noEmit && vite build",
+    "test:decoder": "node electron/test-normalize.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
