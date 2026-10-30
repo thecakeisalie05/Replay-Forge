@@ -1,7 +1,7 @@
 export type Vec3=[number,number,number];
 export type Pose={position:Vec3;yaw?:number;velocity?:Vec3;boost?:number};
 export type Frame={time:number;ball:Pose;cars:Record<string,Pose>};
-export type ReplayEvent={time:number;type:string;label:string};
+export type ReplayEvent={time:number;type:string;label:string;position?:Vec3;actorId?:string;confidence?:number;detector?:string};
 export type Track={format:'replay-forge-tracks-v1';title:string;source:'demo'|'decoded';players:{id:string;name:string;team:'blue'|'orange'}[];frames:Frame[];events:ReplayEvent[]};
 const vec=(x:number,y:number,z:number):Vec3=>[x,y,z];
 export function demoTrack():Track{
