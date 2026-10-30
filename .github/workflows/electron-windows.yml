@@ -18,9 +18,10 @@ jobs:
       - name: Build Boxcars helper
         run: cargo build --release --manifest-path decoder/Cargo.toml
       - run: npm install
-      - name: Test decoder contract
-        run: .\\decoder\\target\\release\\replay-forge-decoder.exe
-        continue-on-error: true
+      - name: Test replay normalizer
+        run: node electron/test-normalize.cjs
+      - name: Syntax-check Electron main process
+        run: node --check electron/main.cjs
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with:
