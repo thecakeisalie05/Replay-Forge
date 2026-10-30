@@ -2,6 +2,7 @@ name: Electron Windows installer
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     tags: ['desktop-v*']
 permissions:
   contents: write
@@ -13,7 +14,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Boxcars helper
+        run: cargo build --release --manifest-path decoder/Cargo.toml
       - run: npm install
+      - name: Test decoder contract
+        run: .\\decoder\\target\\release\\replay-forge-decoder.exe
+        continue-on-error: true
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with:
