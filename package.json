@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "build": "tsc --noEmit && vite build && electron-builder --win nsis --publish never",
-    "start": "electron ."
+    "start": "electron .",
+    "check": "tsc --noEmit && vite build"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -44,6 +45,12 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "extraResources": [
+      {
+        "from": "decoder/target/release/replay-forge-decoder.exe",
+        "to": "bin/replay-forge-decoder.exe"
+      }
+    ]
   }
 }
