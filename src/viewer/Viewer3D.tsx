@@ -38,7 +38,6 @@ export default function Viewer3D({track,time,trails,vectors,follow}:Props){
  const resize=new ResizeObserver(()=>{const w=host.clientWidth,h=Math.max(host.clientHeight,100);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)});resize.observe(host);
  let animation=0;const state={track,time,trails,vectors,follow};
  const update=(p:Props)=>{Object.assign(state,p);const frames=p.track.frames;const i=frameAt(frames,p.time),a=frames[i],b=frames[Math.min(i+1,frames.length-1)];const t=a===b?0:THREE.MathUtils.clamp((p.time-a.time)/(b.time-a.time),0,1);
- ball.position.copy(interpolate(a.ball,b.ball,t)).setY(interpolate(a.ball,b.ball,t).z);
  // Replay coordinates: Rocket League X,Y horizontal, Z vertical. Three.js Y is vertical.
  const place=(pose:Pose,next:Pose)=>{const v=interpolate(pose,next,t);return new THREE.Vector3(v.x,v.z,v.y)};
  ball.position.copy(place(a.ball,b.ball));for(const player of p.track.players){const car=cars.get(player.id)!,arrow=arrows.get(player.id)!;const pos=a.cars[player.id],next=b.cars[player.id]||pos;car.visible=!!pos;arrow.visible=!!pos&&p.vectors&&!!pos.velocity;if(!pos)continue;car.position.copy(place(pos,next));car.rotation.y=-(pos.yaw||0);arrow.position.copy(car.position);if(arrow.visible){const vel=new THREE.Vector3(pos.velocity![0],pos.velocity![2],pos.velocity![1]);if(vel.lengthSq()>1){arrow.setDirection(vel.normalize());arrow.setLength(THREE.MathUtils.clamp(vel.length()*.01,2,22))}}}
