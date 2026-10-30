@@ -29,12 +29,12 @@ Installer output: `release/`. GitHub Actions: [Electron Windows installer](.gith
 
 ### Not yet implemented
 
-- Boxcars/Rocket League physics decoding
+- Verified end-to-end native replay-to-physics decoding across game versions
 - Advanced metadata and real match statistics
-- Analytics dashboard, replay reconstruction, Three.js viewer, mechanics detection
+- Accurate player/team attribution, analytics dashboards, production-quality arena assets, mechanics detection
 - Scalable SQLite data layer, automatic parser installation, cancellation and paging
 
-These planned surfaces are **explicitly marked unavailable** in the app. Do not mistake indexed file metadata for game metrics.
+The Replay Viewer now includes a Three.js reconstructed scene, synthetic demonstration, a JSON track importer, and an experimental Rust Boxcars decoder with a normalization bridge. **Native replay reconstruction has not yet been validated against real replays.** Analytics and mechanics detection are explicitly unavailable. Do not mistake indexed file metadata for game metrics.
 
 ## Legacy prototype
 
@@ -47,3 +47,9 @@ The `replay_forge/` Python module is a previous proof-of-concept scanner and HTT
 - [Roadmap](docs/roadmap.md)
 
 Never modify imported `.replay` files. Keep source replays on disk, compute derived data locally, record detector provenance and uncertainty.
+
+## Replay viewer and Boxcars
+
+The Windows packaging workflow compiles the Rust `decoder` crate and bundles `replay-forge-decoder.exe` into the Electron NSIS installer. Select an imported replay in the Replay Viewer and choose **Decode with Boxcars**. This is an experimental decoder; not all network schemas, rotations, team assignments or game modes are yet supported. See [decoder integration](docs/boxcars-integration.md) and [viewer architecture](docs/viewer-architecture.md).
+
+CI automatically runs on pushes to `main`, compiles the Rust helper, tests the normalization fixture, checks Electron syntax and builds the NSIS installer. Build success and actual replay fidelity must be verified separately.
