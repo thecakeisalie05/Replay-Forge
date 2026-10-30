@@ -17,12 +17,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build Boxcars helper
         run: cargo build --release --manifest-path decoder/Cargo.toml
-      - run: npm install
+      - name: Install JavaScript dependencies
+        run: npm install --no-audit --no-fund
       - name: Test replay normalizer
         run: node electron/test-normalize.cjs
       - name: Syntax-check Electron main process
         run: node --check electron/main.cjs
-      - run: npm run build
+      - name: Check TypeScript and bundle renderer
+        run: npm run check
+      - name: Build NSIS Windows installer
+        run: npm run build
       - uses: actions/upload-artifact@v4
         with:
           name: ReplayForge-Electron-Windows
