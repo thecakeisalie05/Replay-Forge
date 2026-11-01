@@ -21,7 +21,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Test replay normalizer
         run: node electron/test-normalize.cjs
-      - name: Syntax-check Electron main process
+      - name: Test track metrics\n        run: node electron/test-metrics.cjs\n      - name: Syntax-check Electron main process
         run: node --check electron/main.cjs
       - name: Check TypeScript and bundle renderer
         run: npm run check
