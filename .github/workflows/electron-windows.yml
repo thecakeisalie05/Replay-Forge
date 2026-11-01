@@ -6,6 +6,9 @@ on:
     tags: ['desktop-v*']
 permissions:
   contents: write
+concurrency:
+  group: replay-forge-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: windows-latest
