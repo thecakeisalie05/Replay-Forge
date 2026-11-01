@@ -6,7 +6,10 @@ function normalize(input,title){
  const raw=input.replay||input;
  if(!raw||!raw.network_frames||!Array.isArray(raw.network_frames.frames))throw Error('Replay has no Boxcars network frames');
  const objects=raw.objects||[];const names=raw.names||[];
- const actors=new Map();const states=new Map();const teamMap=new Map();const players=new Map();
+ const actors=new Map();const states=new Map();const players=new Map();
+ // Actor identities change after demolitions and respawns. Viewer slots are reused,
+ // and are NOT claimed to represent stable player identities until PRI links are decoded.
+ const freeSlots=[];let slotCount=0;const maxSlots=16;
  const out=[];const events=[];
  const originalId=x=>Number(x?.value??x);
  const nameOf=id=>String(objects[originalId(id)]||'');
@@ -15,11 +18,16 @@ function normalize(input,title){
  const isCar=s=>/Car_TA|Car_Default/.test(s);
  let ballId=null;let warnings=0;
  for(const frame of raw.network_frames.frames){
-  for(const del of frame.deleted_actors||[]){const id=originalId(del);const actor=actors.get(id);if(actor?.kind==='car')states.delete(actor.key);actors.delete(id);if(ballId===id)ballId=null}
+  for(const del of frame.deleted_actors||[]){const id=originalId(del);const actor=actors.get(id);if(actor?.kind==='car'){states.delete(actor.key);freeSlots.push(actor.key)}actors.delete(id);if(ballId===id)ballId=null}
   for(const a of frame.new_actors||[]){const id=originalId(a.actor_id),className=nameOf(a.object_id);let kind=isBall(className)?'ball':isCar(className)?'car':'other';
-   const key='actor-'+id+'-'+frame.time;actors.set(id,{kind,key,className});
+   let key=null;
+   if(kind==='car'){
+    key=freeSlots.length?freeSlots.pop():null;
+    if(key===null){if(slotCount>=maxSlots)throw Error('More than 16 simultaneously active car actors; cannot safely assign viewer slots');key='car-slot-'+(++slotCount)}
+   }
+   actors.set(id,{kind,key,className});
    if(kind==='ball')ballId=id;
-   if(kind==='car'){const playerName=String(names[originalId(a.name_id)]||key);players.set(key,{id:key,name:playerName,team:'blue'});const p=pos(a.initial_trajectory?.location);if(p)states.set(key,{position:p})}
+   if(kind==='car'){if(!players.has(key))players.set(key,{id:key,name:'Car slot '+key.split('-').pop()+' (identity unresolved)',team:'blue'});const p=pos(a.initial_trajectory?.location);if(p)states.set(key,{position:p})}
   }
   for(const u of frame.updated_actors||[]){const actor=getActor(u.actor_id);if(!actor)continue;const attr=u.attribute||{};
    if(attr.RigidBody){const rb=attr.RigidBody;const p=pos(rb.location);if(!p){warnings++;continue}
@@ -33,8 +41,8 @@ function normalize(input,title){
   out.push({time:frame.time,ball:{...ball},cars});
  }
  if(out.length<2)throw Error('Boxcars parsed the replay but no usable ball positions were reconstructed. The actor/coordinate schema may differ for this replay version.');
- const used=new Set(out.flatMap(f=>Object.keys(f.cars)));const participants=[...players.values()].filter(p=>used.has(p.id));
+ const participants=[...players.values()];
  // Unknown teams are visually marked neutral via blue placeholder only; never assert they reflect true teams.
- return {format:'replay-forge-tracks-v1',title,source:'decoded',players:participants,frames:out,events,decode:{engine:'boxcars via rrrocket',warningCount:warnings,identityConfidence:'unresolved',quality:'partial'}};
+ return {format:'replay-forge-tracks-v1',title,source:'decoded',players:participants,frames:out,events,decode:{engine:'boxcars via rrrocket',warningCount:warnings,identityConfidence:'unresolved',teamConfidence:'unresolved',viewerSlots:true,quality:'partial'}};
 }
 module.exports={normalize};
