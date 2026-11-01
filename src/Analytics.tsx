@@ -13,6 +13,7 @@ const options:{key:Choice;name:string;unit:string}[]=[
  {key:'saves',name:'Credited saves',unit:'saves'},
  {key:'shots',name:'Credited shots',unit:'shots'}
 ];
+const measure=(p:AnalysisPlayer,metric:Choice):number|null=>{if(metric==='goals'||metric==='saves'||metric==='shots')return p.credited?.[metric]??null;return p[metric]??null};
 export default function Analytics(){
  const [entries,setEntries]=useState<AnalysisEntry[]>([]),[progress,setProgress]=useState<AnalysisProgress|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[choice,setChoice]=useState<Choice>('averageSpeedUUPerS'),[player,setPlayer]=useState('');
  const refresh=async()=>{const api=window.replayForge;if(!api)return;setEntries(Object.values(await api.getAnalysis()))};
@@ -21,7 +22,7 @@ export default function Analytics(){
  const ok=entries.filter(e=>e.status==='ok');
  const players=useMemo(()=>[...new Set(ok.flatMap(e=>(e.players||[]).filter(p=>!p.name.startsWith('Unresolved ')&&p.coverage>.05).map(p=>p.name)))].sort(),[entries]);
  const selected=player&&players.includes(player)?player:players[0]||'';
- const series=useMemo(()=>ok.flatMap(e=>(e.players||[]).filter(p=>p.name===selected&&p.coverage>.05).map(p=>({date:e.sourceDate||e.fileDate||'',filename:e.filename,value:(['goals','saves','shots'].includes(choice)?p.credited?.[choice as 'goals'|'saves'|'shots']:p[choice as keyof AnalysisPlayer]) as number|null|undefined,coverage:p.coverage}))).filter(p=>p.value!==null&&p.value!==undefined).sort((a,b)=>a.date.localeCompare(b.date)),[entries,choice,selected]);
+ const series=useMemo(()=>ok.flatMap(e=>(e.players||[]).filter(p=>p.name===selected&&p.coverage>.05).map(p=>({date:e.sourceDate||e.fileDate||'',filename:e.filename,value:measure(p,choice),coverage:p.coverage}))).filter(p=>p.value!==null&&p.value!==undefined).sort((a,b)=>a.date.localeCompare(b.date)),[entries,choice,selected]);
  const unit=options.find(o=>o.key===choice)?.unit||'';
  const failures=entries.filter(e=>e.status==='error');
  return <div className="analytics-workspace"><div className="analytics-toolbar"><div><h2>Directory performance trends</h2><p>Cache decoded match summaries; compare only confidently identified player names.</p></div><div className="tools"><button className="secondary" onClick={refresh}><RefreshCcw size={15}/> Refresh</button>{busy?<button className="secondary" onClick={()=>window.replayForge?.cancelAnalysis()}><Square size={14}/> Stop after current replay</button>:<button className="primary" onClick={run}><Activity size={16}/> Analyze imported directory</button>}</div></div>
