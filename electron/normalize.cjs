@@ -17,6 +17,7 @@ function normalize(input,title){
  const objects=raw.objects||[],names=raw.names||[];
  const match=header(raw,title);
  const actors=new Map(),poses=new Map(),carLife=new Map(),pri=new Map(),teamActors=new Map(),boostComponents=new Map(),boostValues=new Map();
+ const reverseCarRefs=new Map();
  const output=[];let warnings=0,lastTime=-Infinity,serial=0,peakCars=0,totalCarSpawns=0;
  for(const frame of frames){
   if(!Number.isFinite(frame.time)||frame.time<=lastTime){warnings++;continue}lastTime=frame.time;
@@ -49,12 +50,15 @@ function normalize(input,title){
     const state=rigid(attr);
     if(state)poses.set(aid,{...poses.get(aid),...state});else warnings++;
    }
-   if(item.kind==='car'&&/(?:^|:)(?:PlayerReplicationInfo|PRI)$/.test(property)){
+   if(item.kind==='car'&&/(?:^|:)(?:PlayerReplicationInfo|PRI|OwnerPRI)$/.test(property)){
     const ref=active(attr);if(ref!==null)item.priId=ref;
    }
    if(item.kind==='boost'){
     if(property==='TAGame.CarComponent_TA:Vehicle'){const vehicleId=active(attr);if(vehicleId!==null)boostComponents.set(aid,vehicleId)}
     if(property==='TAGame.CarComponent_Boost_TA:ReplicatedBoostAmount'&&Number.isFinite(attr?.Byte))boostValues.set(aid,Math.min(100,Math.max(0,attr.Byte/255*100)));
+   }
+   if(item.kind==='pri'&&/(?:^|:)(?:Car|CarRef|Pawn|Vehicle|ReplicatedCar|ReplicatedPawn)$/.test(property)){
+    const carId=active(attr);if(carId!==null)reverseCarRefs.set(carId,aid);
    }
    if(item.kind==='pri'){
     const p=pri.get(aid)||{name:null,teamId:null,stats:{}};
@@ -82,12 +86,13 @@ function normalize(input,title){
  // PRI mapping is resolved after parsing because actor/car data may arrive earlier than the link.
  const aliases=new Map(),players=new Map();
  for(const [instance,car] of carLife){
-  const info=car.priId===null?null:pri.get(car.priId);
-  const canonical=car.priId===null?instance:'player-'+car.priId;
+  const resolvedPri=car.priId??reverseCarRefs.get(car.aid)??null;
+  const info=resolvedPri===null?null:pri.get(resolvedPri);
+  const canonical=resolvedPri===null?instance:'player-'+resolvedPri;
   aliases.set(instance,canonical);
   if(!players.has(canonical)){
    const team=info?.teamId===null||info?.teamId===undefined?null:teamActors.get(info.teamId);
-   players.set(canonical,{id:canonical,name:info?.name||('Unresolved '+canonical),team:team===1?'orange':team===0?'blue':'unknown',teamKnown:team===0||team===1,identityKnown:car.priId!==null,credited:info?.stats||null});
+   players.set(canonical,{id:canonical,name:info?.name||('Unresolved '+canonical),team:team===1?'orange':team===0?'blue':'unknown',teamKnown:team===0||team===1,identityKnown:resolvedPri!==null,credited:info?.stats||null});
   } else if(info?.name&&players.get(canonical).name.startsWith('Unresolved ')){
    players.get(canonical).name=info.name;
   }
@@ -111,6 +116,6 @@ function normalize(input,title){
  }
  const participants=[...players.values()].filter(p=>used.has(p.id));
  const linked=participants.filter(p=>p.identityKnown).length;
- return{format:'replay-forge-tracks-v1',title:match.title,recordedAt:match.date,metadata:{map:match.map,playlist:match.playlist,teamSize:match.teamSize,duration:match.duration,scores:match.scores,gameBuild:match.gameBuild,goalCount:match.goalCount},roster:match.roster,source:'decoded',players:participants,frames:merged,events:[],decode:{engine:'boxcars',warningCount:warnings,quality:linked===participants.length?'partial':'partial-unresolved',peakCars,totalCarSpawns,actorInstances:carLife.size,playerIdentities:linked,identityConfidence:linked===participants.length?'linked':'partial',teamConfidence:participants.every(p=>p.teamKnown)?'linked':'partial'}};
+ return{format:'replay-forge-tracks-v1',title:match.title,recordedAt:match.date,metadata:{map:match.map,playlist:match.playlist,teamSize:match.teamSize,duration:match.duration,scores:match.scores,gameBuild:match.gameBuild,goalCount:match.goalCount},roster:match.roster,source:'decoded',players:participants,frames:merged,events:[],decode:{engine:'boxcars',warningCount:warnings,quality:linked===participants.length?'partial':'partial-unresolved',peakCars,totalCarSpawns,actorInstances:carLife.size,playerIdentities:linked,identityConfidence:linked===participants.length?'linked':'partial',reversePriLinks:reverseCarRefs.size,teamConfidence:participants.every(p=>p.teamKnown)?'linked':'partial'}};
 }
 module.exports={normalize};
