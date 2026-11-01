@@ -53,3 +53,28 @@ const alternate=normalize(nameVariants,'name-variants.replay');
 assert.equal(alternate.players[0].name,'Alternate Player','Accept alternate PRI name properties and strings');
 assert.equal(alternate.players[0].team,'unknown','Unresolved teams must not be fabricated');
 console.log('Player-name variant regression test passed');
+
+const withHeader=structuredClone(linked);
+withHeader.properties=[
+ ['ReplayName','Ranked Match'],['Date','2026-04-15 19:21:00'],['MapName','Stadium_P'],
+ ['MatchType','Online'],['TeamSize',2],['Team0Score',3],['Team1Score',1],
+ ['PlayerStats',[{Name:'Rocket Player',Team:1,Goals:2,Shots:5,Saves:3,Score:480,Platform:'Steam',OnlineID:'42'},{Name:'Other Player',Team:0,Goals:1}]]
+];
+const enriched=normalize(withHeader,'filename.replay');
+assert.equal(enriched.title,'Ranked Match');
+assert.equal(enriched.metadata.map,'Stadium_P');
+assert.equal(enriched.metadata.teamSize,2);
+assert.equal(enriched.roster.length,2);
+assert.equal(enriched.roster[0].name,'Rocket Player');
+assert.equal(enriched.roster[0].platform,'Steam');
+assert.equal(enriched.roster[0].platformId,'42');
+assert.equal(enriched.players[0].team,'orange','Unique PRI-header name match enriches team');
+assert.equal(enriched.players[0].headerId,'header-0');
+assert.equal(enriched.players[0].credited.goals,2);
+const headerOnly=structuredClone(replay);
+headerOnly.properties=withHeader.properties;
+const unlinked=normalize(headerOnly,'no-pri.replay');
+assert.equal(unlinked.roster.length,2,'Header roster remains even without a PRI link');
+assert.equal(unlinked.players[0].team,'unknown','Do not guess car team from roster ordering');
+assert.ok(unlinked.players[0].name.startsWith('Unresolved '),'Do not guess car name from roster ordering');
+console.log('Original Replay Forge header metadata / roster integration passed');
