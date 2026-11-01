@@ -2,13 +2,16 @@ import {useEffect,useMemo,useState} from 'react';
 import {Activity,BarChart3,RefreshCcw,Square,AlertTriangle} from 'lucide-react';
 import {CartesianGrid,Line,LineChart,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts';
 import type {AnalysisEntry,AnalysisProgress,AnalysisPlayer} from './types';
-type Choice='averageSpeedUUPerS'|'peakSpeedUUPerS'|'secondsAbove130'|'boostSpent'|'secondsWithoutBoost';
+type Choice='averageSpeedUUPerS'|'peakSpeedUUPerS'|'secondsAbove130'|'boostSpent'|'secondsWithoutBoost'|'goals'|'saves'|'shots';
 const options:{key:Choice;name:string;unit:string}[]=[
  {key:'averageSpeedUUPerS',name:'Average car speed',unit:'uu/s'},
  {key:'peakSpeedUUPerS',name:'Peak car speed',unit:'uu/s'},
  {key:'secondsAbove130',name:'Time above 130 uu',unit:'seconds'},
  {key:'boostSpent',name:'Observed boost consumption',unit:'points'},
- {key:'secondsWithoutBoost',name:'Observed zero-boost time',unit:'seconds'}
+ {key:'secondsWithoutBoost',name:'Observed zero-boost time',unit:'seconds'},
+ {key:'goals',name:'Credited goals',unit:'goals'},
+ {key:'saves',name:'Credited saves',unit:'saves'},
+ {key:'shots',name:'Credited shots',unit:'shots'}
 ];
 export default function Analytics(){
  const [entries,setEntries]=useState<AnalysisEntry[]>([]),[progress,setProgress]=useState<AnalysisProgress|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[choice,setChoice]=useState<Choice>('averageSpeedUUPerS'),[player,setPlayer]=useState('');
@@ -18,7 +21,7 @@ export default function Analytics(){
  const ok=entries.filter(e=>e.status==='ok');
  const players=useMemo(()=>[...new Set(ok.flatMap(e=>(e.players||[]).filter(p=>!p.name.startsWith('Unresolved ')&&p.coverage>.05).map(p=>p.name)))].sort(),[entries]);
  const selected=player&&players.includes(player)?player:players[0]||'';
- const series=useMemo(()=>ok.flatMap(e=>(e.players||[]).filter(p=>p.name===selected&&p.coverage>.05).map(p=>({date:e.sourceDate||e.fileDate||'',filename:e.filename,value:p[choice] as number|null,coverage:p.coverage}))).filter(p=>p.value!==null).sort((a,b)=>a.date.localeCompare(b.date)),[entries,choice,selected]);
+ const series=useMemo(()=>ok.flatMap(e=>(e.players||[]).filter(p=>p.name===selected&&p.coverage>.05).map(p=>({date:e.sourceDate||e.fileDate||'',filename:e.filename,value:(['goals','saves','shots'].includes(choice)?p.credited?.[choice as 'goals'|'saves'|'shots']:p[choice as keyof AnalysisPlayer]) as number|null|undefined,coverage:p.coverage}))).filter(p=>p.value!==null&&p.value!==undefined).sort((a,b)=>a.date.localeCompare(b.date)),[entries,choice,selected]);
  const unit=options.find(o=>o.key===choice)?.unit||'';
  const failures=entries.filter(e=>e.status==='error');
  return <div className="analytics-workspace"><div className="analytics-toolbar"><div><h2>Directory performance trends</h2><p>Cache decoded match summaries; compare only confidently identified player names.</p></div><div className="tools"><button className="secondary" onClick={refresh}><RefreshCcw size={15}/> Refresh</button>{busy?<button className="secondary" onClick={()=>window.replayForge?.cancelAnalysis()}><Square size={14}/> Stop after current replay</button>:<button className="primary" onClick={run}><Activity size={16}/> Analyze imported directory</button>}</div></div>
