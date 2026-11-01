@@ -43,3 +43,9 @@ Potential schema:
 - `Frame`: match_id, time, actor, state, quality
 - `Event`: match_id, detector, event_type, t0, t1, participants, evidence, confidence
 - `Metric`: match_id, player_id, name, unit, numerator, denominator, value, methodology, coverage
+
+## October 2026 implementation note
+
+The Electron app now has experimental Boxcars normalization, persistent per-content-hash cached batch metrics, a provisional analytics dashboard, and versioned low-confidence event detectors. PRI links are used when available to unify multiple car actor lifetimes, while missing actor associations remain explicitly unresolved. Historical actor instance counts are not a player count.
+
+Outstanding work: large-library stress tests, independent replay accuracy validation, calibrated mechanics and 50/50 classifiers, correct player team attribution in all replay versions, full arena assets, production-quality camera modes and performance instrumentation.
