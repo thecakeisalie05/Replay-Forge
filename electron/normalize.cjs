@@ -73,7 +73,7 @@ function normalize(input,title){
   aliases.set(instance,canonical);
   if(!players.has(canonical)){
    const team=info?.teamId===null||info?.teamId===undefined?null:teamActors.get(info.teamId);
-   players.set(canonical,{id:canonical,name:info?.name||('Unresolved '+canonical),team:team===1?'orange':'blue',teamKnown:team===0||team===1,identityKnown:car.priId!==null});
+   players.set(canonical,{id:canonical,name:info?.name||('Unresolved '+canonical),team:team===1?'orange':team===0?'blue':'unknown',teamKnown:team===0||team===1,identityKnown:car.priId!==null});
   } else if(info?.name&&players.get(canonical).name.startsWith('Unresolved ')){
    players.get(canonical).name=info.name;
   }
