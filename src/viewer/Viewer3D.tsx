@@ -4,7 +4,7 @@ import type {Track,Pose} from './model';
 import {createEventLayer} from './layers';
 import {createCarModel,createBallModel,createArenaDecorations} from './assets';
 import {frameAt} from './model';
-type Props={track:Track;time:number;trails:boolean;vectors:boolean;follow:string};
+type Props={track:Track;time:number;trails:boolean;vectors:boolean;labels:boolean;follow:string};
 const meters=0.01;
 // Rocket League uses X/Y horizontal, Z up. Transform into right-handed Three.js Y-up.
 const basis=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2);
@@ -18,7 +18,7 @@ function orientation(a:Pose,b:Pose,t:number){
  return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),-(a.yaw||0));
 }
 function interpolate(a:Pose,b:Pose,t:number):THREE.Vector3 {return new THREE.Vector3(...a.position).lerp(new THREE.Vector3(...b.position),t).multiplyScalar(meters)}
-export default function Viewer3D({track,time,trails,vectors,follow}:Props){
+export default function Viewer3D({track,time,trails,vectors,labels,follow}:Props){
  const el=useRef<HTMLDivElement>(null);const sceneRef=useRef<{update:(p:Props)=>void;destroy:()=>void}|null>(null);
  useEffect(()=>{
  const host=el.current;if(!host)return;
@@ -57,11 +57,11 @@ export default function Viewer3D({track,time,trails,vectors,follow}:Props){
  function wheel(e:WheelEvent){e.preventDefault();dist=THREE.MathUtils.clamp(dist*(1+e.deltaY*.001),45,440)}
  renderer.domElement.addEventListener('pointerdown',pointerDown);renderer.domElement.addEventListener('pointermove',pointerMove);renderer.domElement.addEventListener('pointerup',pointerUp);renderer.domElement.addEventListener('wheel',wheel,{passive:false});
  const resize=new ResizeObserver(()=>{const w=host.clientWidth,h=Math.max(host.clientHeight,100);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)});resize.observe(host);
- let animation=0;const state={track,time,trails,vectors,follow};
+ let animation=0;const state={track,time,trails,vectors,labels,follow};
  const update=(p:Props)=>{Object.assign(state,p);const frames=p.track.frames;const i=frameAt(frames,p.time),a=frames[i],b=frames[Math.min(i+1,frames.length-1)];const t=a===b?0:THREE.MathUtils.clamp((p.time-a.time)/(b.time-a.time),0,1);
  // Replay coordinates: Rocket League X,Y horizontal, Z vertical. Three.js Y is vertical.
  const place=(pose:Pose,next:Pose)=>worldPose(interpolate(pose,next,t));
- ball.position.copy(place(a.ball,b.ball));for(const player of p.track.players){const car=cars.get(player.id)!,arrow=arrows.get(player.id)!;const pos=a.cars[player.id],next=b.cars[player.id]||pos;car.visible=!!pos;const tag=tags.get(player.id)!;tag.visible=!!pos;arrow.visible=!!pos&&p.vectors&&!!pos.velocity;if(!pos)continue;car.position.copy(place(pos,next));tag.position.copy(car.position).add(new THREE.Vector3(0,3.1,0));car.quaternion.copy(orientation(pos,next,t));arrow.position.copy(car.position);if(arrow.visible){const vel=worldPose(new THREE.Vector3(...pos.velocity!));if(vel.lengthSq()>1){const velocityMagnitude=vel.length();arrow.setDirection(vel.normalize());arrow.setLength(THREE.MathUtils.clamp(velocityMagnitude*.01,2,22))}}}
+ ball.position.copy(place(a.ball,b.ball));for(const player of p.track.players){const car=cars.get(player.id)!,arrow=arrows.get(player.id)!;const pos=a.cars[player.id],next=b.cars[player.id]||pos;car.visible=!!pos;const tag=tags.get(player.id)!;tag.visible=!!pos&&p.labels;arrow.visible=!!pos&&p.vectors&&!!pos.velocity;if(!pos)continue;car.position.copy(place(pos,next));tag.position.copy(car.position).add(new THREE.Vector3(0,3.1,0));car.quaternion.copy(orientation(pos,next,t));arrow.position.copy(car.position);if(arrow.visible){const vel=worldPose(new THREE.Vector3(...pos.velocity!));if(vel.lengthSq()>1){const velocityMagnitude=vel.length();arrow.setDirection(vel.normalize());arrow.setLength(THREE.MathUtils.clamp(velocityMagnitude*.01,2,22))}}}
  eventLayer.update(p.time,p.track);
  if(lastTrailFrame!==i||lastTrailEnabled!==p.trails){
   lastTrailFrame=i;lastTrailEnabled=p.trails;
@@ -76,10 +76,10 @@ export default function Viewer3D({track,time,trails,vectors,follow}:Props){
  }
  pan= p.follow==='ball'?ball.position.clone():cars.get(p.follow)?.position.clone()||new THREE.Vector3(0,0,0);
  };
- const draw=()=>{animation=requestAnimationFrame(draw);const offset=new THREE.Vector3(Math.sin(az)*Math.cos(elv),Math.sin(elv),Math.cos(az)*Math.cos(elv)).multiplyScalar(dist);camera.position.copy(pan).add(offset);camera.lookAt(pan);renderer.render(scene,camera)};draw();update({track,time,trails,vectors,follow});
+ const draw=()=>{animation=requestAnimationFrame(draw);const offset=new THREE.Vector3(Math.sin(az)*Math.cos(elv),Math.sin(elv),Math.cos(az)*Math.cos(elv)).multiplyScalar(dist);camera.position.copy(pan).add(offset);camera.lookAt(pan);renderer.render(scene,camera)};draw();update({track,time,trails,vectors,labels,follow});
  sceneRef.current={update,destroy:()=>{cancelAnimationFrame(animation);resize.disconnect();renderer.domElement.removeEventListener('pointerdown',pointerDown);renderer.domElement.removeEventListener('pointermove',pointerMove);renderer.domElement.removeEventListener('pointerup',pointerUp);renderer.domElement.removeEventListener('wheel',wheel);scene.traverse(obj=>{if(obj instanceof THREE.Sprite){const m=obj.material as THREE.SpriteMaterial;m.map?.dispose();m.dispose()}if(obj instanceof THREE.Mesh||obj instanceof THREE.Line||obj instanceof THREE.LineSegments){obj.geometry.dispose();const m=obj.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m.dispose()}});eventLayer.dispose();renderer.dispose();host.removeChild(renderer.domElement)}};
  return()=>{sceneRef.current?.destroy();sceneRef.current=null};
  },[track]);
- useEffect(()=>{sceneRef.current?.update({track,time,trails,vectors,follow})},[track,time,trails,vectors,follow]);
+ useEffect(()=>{sceneRef.current?.update({track,time,trails,vectors,follow})},[track,time,trails,vectors,labels,follow]);
  return <div ref={el} style={{height:'100%',minHeight:380,width:'100%',cursor:'grab'}} aria-label="Three dimensional replay reconstruction"/>;
 }
