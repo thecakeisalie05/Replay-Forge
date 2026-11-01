@@ -11,7 +11,7 @@ export default function MechanicsLab({replays}:{replays:Replay[]}){
  const [track,setTrack]=useState<Track|null>(null),[replay,setReplay]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState(''),[filter,setFilter]=useState(''),[decisions,setDecisions]=useState<Record<string,Annotation>>({});const upload=useRef<HTMLInputElement>(null);
  const candidates=useMemo(()=>track?detectEvents(track):[],[track]);
  const visible=useMemo(()=>candidates.map((event,i)=>({event,key:key(event,i)})).filter(x=>(x.event.detector||'').toLowerCase().includes(filter.toLowerCase())||x.event.label.toLowerCase().includes(filter.toLowerCase())),[candidates,filter]);
- function update(eventKey:string,patch:Partial<Annotation>){setDecisions(all=>({...all,[eventKey]:{eventKey,decision:'unreviewed',notes:'',...all[eventKey],...patch}}))}
+ function update(eventKey:string,patch:Partial<Annotation>){setDecisions(all=>{const previous=all[eventKey];return {...all,[eventKey]:{eventKey,decision:patch.decision??previous?.decision??'unreviewed',notes:patch.notes??previous?.notes??''}}})}
  function loaded(data:Track){setTrack(data);setDecisions({});setError('')}
  async function decode(){if(!window.replayForge||!replay)return;setLoading(true);try{loaded(validateTrack(await window.replayForge.decodeReplay(replay)))}catch(e){setError(String(e))}finally{setLoading(false)}}
  async function onJson(e:React.ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];if(!file)return;try{loaded(validateTrack(JSON.parse(await file.text())))}catch(e){setError(String(e))}e.target.value=''}
