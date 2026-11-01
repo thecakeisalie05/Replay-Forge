@@ -21,7 +21,7 @@ export function validateTrack(raw:unknown):Track {
  const v=raw as Partial<Track>;
  if(v.format!=='replay-forge-tracks-v1'||!Array.isArray(v.frames)||!Array.isArray(v.players)||!Array.isArray(v.events))throw Error('Unsupported track JSON format');
  if(v.frames.length<2||v.frames.length>250000)throw Error('Track must contain 2 to 250000 frames');
- if(v.players.length>16)throw Error('Too many players');
+ if(v.players.length>1024)throw Error('Track contains more than 1024 car actor identities; decoder output may be invalid');
  const ids=new Set<string>();
  for(const p of v.players){if(typeof p.id!=='string'||typeof p.name!=='string'||!['blue','orange'].includes(p.team)||ids.has(p.id))throw Error('Invalid player entry');ids.add(p.id)}
  const check=(p:Pose)=>p&&Array.isArray(p.position)&&p.position.length===3&&p.position.every(x=>typeof x==='number'&&Number.isFinite(x)&&Math.abs(x)<1000000)&&
