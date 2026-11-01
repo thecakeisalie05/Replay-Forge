@@ -80,6 +80,6 @@ export default function Viewer3D({track,time,trails,vectors,labels,follow}:Props
  sceneRef.current={update,destroy:()=>{cancelAnimationFrame(animation);resize.disconnect();renderer.domElement.removeEventListener('pointerdown',pointerDown);renderer.domElement.removeEventListener('pointermove',pointerMove);renderer.domElement.removeEventListener('pointerup',pointerUp);renderer.domElement.removeEventListener('wheel',wheel);scene.traverse(obj=>{if(obj instanceof THREE.Sprite){const m=obj.material as THREE.SpriteMaterial;m.map?.dispose();m.dispose()}if(obj instanceof THREE.Mesh||obj instanceof THREE.Line||obj instanceof THREE.LineSegments){obj.geometry.dispose();const m=obj.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m.dispose()}});eventLayer.dispose();renderer.dispose();host.removeChild(renderer.domElement)}};
  return()=>{sceneRef.current?.destroy();sceneRef.current=null};
  },[track]);
- useEffect(()=>{sceneRef.current?.update({track,time,trails,vectors,follow})},[track,time,trails,vectors,labels,follow]);
+ useEffect(()=>{sceneRef.current?.update({track,time,trails,vectors,labels,follow})},[track,time,trails,vectors,labels,follow]);
  return <div ref={el} style={{height:'100%',minHeight:380,width:'100%',cursor:'grab'}} aria-label="Three dimensional replay reconstruction"/>;
 }
