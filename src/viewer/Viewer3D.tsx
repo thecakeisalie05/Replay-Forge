@@ -2,6 +2,7 @@ import {useEffect,useRef} from 'react';
 import * as THREE from 'three';
 import type {Track,Pose} from './model';
 import {createEventLayer} from './layers';
+import {createCarModel,createBallModel,createArenaDecorations} from './assets';
 import {frameAt} from './model';
 type Props={track:Track;time:number;trails:boolean;vectors:boolean;follow:string};
 const meters=0.01;
@@ -26,7 +27,7 @@ export default function Viewer3D({track,time,trails,vectors,follow}:Props){
  const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);host.appendChild(renderer.domElement);
  const arena=new THREE.Group();scene.add(arena);scene.add(new THREE.HemisphereLight('#d5e7ff','#14263a',2.1));
  const light=new THREE.DirectionalLight('#ffffff',2.3);light.position.set(35,130,45);scene.add(light);
- const field=new THREE.Mesh(new THREE.PlaneGeometry(82,102),new THREE.MeshStandardMaterial({color:'#173c37',roughness:1,side:THREE.DoubleSide}));field.rotation.x=-Math.PI/2;arena.add(field);
+ const field=new THREE.Mesh(new THREE.PlaneGeometry(82,102),new THREE.MeshStandardMaterial({color:'#173c37',roughness:1,side:THREE.DoubleSide}));field.rotation.x=-Math.PI/2;arena.add(field);arena.add(createArenaDecorations());
  const lines=new THREE.Group();arena.add(lines);const material=new THREE.LineBasicMaterial({color:'#5c91ad',transparent:true,opacity:.65});
  function line(points:THREE.Vector3[]){const mesh=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),material);lines.add(mesh)}
  const rect=[[-41,-51],[41,-51],[41,51],[-41,51],[-41,-51]];line(rect.map(([x,z])=>new THREE.Vector3(x,.13,z)));
@@ -35,10 +36,10 @@ export default function Viewer3D({track,time,trails,vectors,follow}:Props){
  const grid=new THREE.GridHelper(102,18,'#33546b','#183a46');grid.position.y=.02;scene.add(grid);
  for(const z of [-52,52]){const goal=new THREE.Mesh(new THREE.BoxGeometry(19,7,2),new THREE.MeshBasicMaterial({color:z>0?'#fc985b':'#4bb4ff',wireframe:true}));goal.position.set(0,3.5,z);arena.add(goal)}
  const walls=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(83,22,103)),new THREE.LineBasicMaterial({color:'#314b66',transparent:true,opacity:.45}));walls.position.y=11;scene.add(walls);
- const ball=new THREE.Mesh(new THREE.SphereGeometry(.92,24,16),new THREE.MeshStandardMaterial({color:'#f5dfb2',metalness:.1,roughness:.48}));scene.add(ball);
- const cars=new Map<string,THREE.Mesh>();
+ const ball=createBallModel();scene.add(ball);
+ const cars=new Map<string,THREE.Group>();
  const arrows=new Map<string,THREE.ArrowHelper>();
- for(const player of track.players){const car=new THREE.Mesh(new THREE.BoxGeometry(4.3,.8,2.7),new THREE.MeshStandardMaterial({color:player.team==='blue'?'#37aeff':player.team==='orange'?'#ff943e':'#c9d2e0',metalness:.28,roughness:.4}));cars.set(player.id,car);scene.add(car);
+ for(const player of track.players){const car=createCarModel(player.team);cars.set(player.id,car);scene.add(car);
  const arrow=new THREE.ArrowHelper(new THREE.Vector3(0,0,1),new THREE.Vector3(),4,player.team==='blue'?'#77ceff':player.team==='orange'?'#ffce87':'#d9e0ec');arrows.set(player.id,arrow);scene.add(arrow)}
  const trailGroup=new THREE.Group();scene.add(trailGroup);
  let lastTrailFrame=-1,lastTrailEnabled=false;
