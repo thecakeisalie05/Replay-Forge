@@ -12,7 +12,7 @@ async function analyze(app,replays,webContents){
    const key=replay.sha256;const existing=results[key];
    if(existing&&existing.revision===REVISION&&existing.status==='ok'){skipped++;entries.push(existing);completed++;continue}
    try{
-    const track=await decode(replay.path);const entry={revision:REVISION,status:'ok',sha256:key,filename:replay.name,fileDate:new Date(replay.mtimeMs).toISOString(),title:track.title,sourceDate:track.recordedAt||null,players:summarize(track),roster:track.roster||[],metadata:track.metadata||null,decode:track.decode||null};
+    const track=await decode(replay.path);const entry={revision:REVISION,status:'ok',sha256:key,filename:replay.name,fileDate:new Date(replay.mtimeMs).toISOString(),title:track.title,sourceDate:track.recordedAt||null,recordedDuration:track.metadata?.duration??null,players:summarize(track),roster:track.roster||[],metadata:track.metadata||null,decode:track.decode||null};
     results[key]=entry;entries.push(entry);decoded++;
    }catch(e){failed++;const entry={revision:REVISION,status:'error',sha256:key,filename:replay.name,error:String(e)};results[key]=entry;entries.push(entry)}
    completed++;write(app,results);
