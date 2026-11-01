@@ -1,5 +1,5 @@
 export type Vec3=[number,number,number];
-export type Pose={position:Vec3;yaw?:number;velocity?:Vec3;boost?:number};
+export type Pose={position:Vec3;yaw?:number;orientation?:[number,number,number,number];velocity?:Vec3;boost?:number};
 export type Frame={time:number;ball:Pose;cars:Record<string,Pose>};
 export type ReplayEvent={time:number;type:string;label:string;position?:Vec3;actorId?:string;confidence?:number;detector?:string};
 export type Track={recordedAt?:string|null;format:'replay-forge-tracks-v1';title:string;source:'demo'|'decoded';players:{id:string;name:string;team:'blue'|'orange'|'unknown';credited?:{goals?:number;saves?:number;shots?:number;assists?:number;score?:number;epicsaves?:number}|null}[];frames:Frame[];events:ReplayEvent[]};
@@ -25,7 +25,7 @@ export function validateTrack(raw:unknown):Track {
  const ids=new Set<string>();
  for(const p of v.players){if(typeof p.id!=='string'||typeof p.name!=='string'||!['blue','orange','unknown'].includes(p.team)||ids.has(p.id))throw Error('Invalid player entry');ids.add(p.id)}
  const check=(p:Pose)=>p&&Array.isArray(p.position)&&p.position.length===3&&p.position.every(x=>typeof x==='number'&&Number.isFinite(x)&&Math.abs(x)<1000000)&&
- (p.yaw===undefined||Number.isFinite(p.yaw))&&(p.boost===undefined||(Number.isFinite(p.boost)&&p.boost>=0&&p.boost<=100))&&
+ (p.yaw===undefined||Number.isFinite(p.yaw))&&(p.orientation===undefined||(Array.isArray(p.orientation)&&p.orientation.length===4&&p.orientation.every(Number.isFinite)))&&(p.boost===undefined||(Number.isFinite(p.boost)&&p.boost>=0&&p.boost<=100))&&
  (p.velocity===undefined||(Array.isArray(p.velocity)&&p.velocity.length===3&&p.velocity.every(Number.isFinite)));
  let prev=-Infinity;
  for(const f of v.frames){if(!Number.isFinite(f.time)||f.time<=prev||!check(f.ball)||!f.cars||typeof f.cars!=='object')throw Error('Invalid or non-monotonic frame');prev=f.time;for(const [id,p] of Object.entries(f.cars)){if(!ids.has(id)||!check(p))throw Error('Invalid car pose or player ID')}}
