@@ -25,4 +25,5 @@ async function analyze(app,replays,webContents){
  }
 }
 function stop(){cancelled=true}
-module.exports={analyze,read,stop};
+function clear(app){if(running)throw Error('Cannot clear analysis while a scan is running');try{fs.rmSync(cacheFile(app),{force:true})}catch(e){throw e}return true}
+module.exports={analyze,read,stop,clear};
