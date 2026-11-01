@@ -1,48 +1,73 @@
-// Converts Boxcars actor replication updates into a durable intermediate track.
-// Requires decoded numeric coordinates; unsupported compressed coordinate variants are reported, never guessed.
-function pos(v){if(!v||!['x','y','z'].every(k=>Number.isFinite(v[k])))return null;return [v.x,v.y,v.z]}
-function num(v){return typeof v==='number'&&Number.isFinite(v)?v:undefined}
+// Boxcars -> Replay Forge normalized track.
+// Actor identities and player identities are deliberately distinct. Actor lifecycles can
+// contain arbitrarily many spawns; only concurrently active cars are viewer candidates.
+const vector=v=>v&&[v.x,v.y,v.z].every(Number.isFinite)?[v.x,v.y,v.z]:null;
+const id=v=>Number(v&&typeof v==='object'?v.value:v);
+const value=(v,key)=>v&&typeof v==='object'?v[key]:undefined;
+const isCar=s=>/(?:^|[.])Car_(?:TA|Default)|Archetypes\.Car\./i.test(s);
+const isBall=s=>/(?:^|[.])Ball_(?:TA|Default|Breakout|Hoops|Puck|Cube)|Archetypes\.Ball\./i.test(s);
+function rigid(v){
+ // serde serializes enum variants e.g. {"RigidBody":{"location":{...},...}}
+ const body=value(v,'RigidBody')||value(v,'rigid_body');
+ if(!body)return null;
+ const location=vector(body.location);if(!location)return null;
+ const pose={position:location};
+ const velocity=vector(body.linear_velocity);if(velocity)pose.velocity=velocity;
+ return pose;
+}
 function normalize(input,title){
- const raw=input.replay||input;
- if(!raw||!raw.network_frames||!Array.isArray(raw.network_frames.frames))throw Error('Replay has no Boxcars network frames');
- const objects=raw.objects||[];const names=raw.names||[];
- const actors=new Map();const states=new Map();const players=new Map();
- // Actor identities change after demolitions and respawns. Viewer slots are reused,
- // and are NOT claimed to represent stable player identities until PRI links are decoded.
- const freeSlots=[];let slotCount=0;const maxSlots=16;
- const out=[];const events=[];
- const originalId=x=>Number(x?.value??x);
- const nameOf=id=>String(objects[originalId(id)]||'');
- const getActor=(id)=>actors.get(originalId(id));
- const isBall=s=>/Ball_(?:Default|Breakout|Hoops|Puck|Cube)|Ball_TA|Ball_/.test(s);
- const isCar=s=>/Car_TA|Car_Default/.test(s);
- let ballId=null;let warnings=0;
- for(const frame of raw.network_frames.frames){
-  for(const del of frame.deleted_actors||[]){const id=originalId(del);const actor=actors.get(id);if(actor?.kind==='car'){states.delete(actor.key);freeSlots.push(actor.key)}actors.delete(id);if(ballId===id)ballId=null}
-  for(const a of frame.new_actors||[]){const id=originalId(a.actor_id),className=nameOf(a.object_id);let kind=isBall(className)?'ball':isCar(className)?'car':'other';
-   let key=null;
-   if(kind==='car'){
-    key=freeSlots.length?freeSlots.pop():null;
-    if(key===null){if(slotCount>=maxSlots)throw Error('More than 16 simultaneously active car actors; cannot safely assign viewer slots');key='car-slot-'+(++slotCount)}
-   }
-   actors.set(id,{kind,key,className});
-   if(kind==='ball')ballId=id;
-   if(kind==='car'){if(!players.has(key))players.set(key,{id:key,name:'Car slot '+key.split('-').pop()+' (identity unresolved)',team:'blue'});const p=pos(a.initial_trajectory?.location);if(p)states.set(key,{position:p})}
+ const raw=input?.replay||input;
+ const frames=raw?.network_frames?.frames;
+ if(!Array.isArray(frames))throw Error('Boxcars network frames missing');
+ const objects=raw.objects||[];
+ const actors=new Map(),physical=new Map(),carMetadata=new Map();
+ const output=[];let warnings=0,peakCars=0,totalCarSpawns=0,lastTime=-Infinity;
+ for(const frame of frames){
+  if(!Number.isFinite(frame.time)||frame.time<=lastTime){warnings++;continue}
+  lastTime=frame.time;
+  for(const deleted of frame.deleted_actors||[]){
+   const key=id(deleted),actor=actors.get(key);
+   if(actor){physical.delete(key);actors.delete(key)}
   }
-  for(const u of frame.updated_actors||[]){const actor=getActor(u.actor_id);if(!actor)continue;const attr=u.attribute||{};
-   if(attr.RigidBody){const rb=attr.RigidBody;const p=pos(rb.location);if(!p){warnings++;continue}
-    const pose={position:p};const vel=pos(rb.linear_velocity);if(vel)pose.velocity=vel;
-    if(actor.kind==='ball')states.set('ball',pose);else if(actor.kind==='car')states.set(actor.key,{...states.get(actor.key),...pose});
-   }
-   // Names and teams require resolving player replication associations; do not invent identities.
+  for(const spawned of frame.new_actors||[]){
+   const actorId=id(spawned.actor_id),objectName=String(objects[id(spawned.object_id)]||'');
+   if(!Number.isFinite(actorId))continue;
+   // An actor ID can be reused within a replay. Treat a respawn as a new lifetime,
+   // not a new player (and do not keep the old pose).
+   physical.delete(actorId);
+   const kind=isBall(objectName)?'ball':isCar(objectName)?'car':'other';
+   const actor={id:actorId,kind,objectName,serial:++totalCarSpawns};
+   if(kind!=='car')totalCarSpawns--;
+   actors.set(actorId,actor);
+   const location=vector(spawned.initial_trajectory?.location);
+   if(location&&(kind==='car'||kind==='ball'))physical.set(actorId,{position:location});
+   if(kind==='car'&&!carMetadata.has(actorId))carMetadata.set(actorId,{id:'actor-'+actorId,name:'Car actor '+actorId+' (unresolved)',team:'blue'});
   }
-  const ball=states.get('ball');if(!ball||!Number.isFinite(frame.time))continue;
-  const cars={};for(const [k,v] of states)if(k!=='ball'&&v?.position)cars[k]={...v};
-  out.push({time:frame.time,ball:{...ball},cars});
+  for(const updated of frame.updated_actors||[]){
+   const actorId=id(updated.actor_id),actor=actors.get(actorId);
+   if(!actor||actor.kind==='other')continue;
+   // object_id indexes objects[], the property key; attribute is the *tagged value*.
+   const prop=String(objects[id(updated.object_id)]||'');
+   const v=updated.attribute;
+   if(/(?:ReplicatedRBState|RigidBody|ReplicatedMovement)/i.test(prop)||value(v,'RigidBody')){
+    const p=rigid(v);
+    if(p)physical.set(actorId,{...physical.get(actorId),...p});
+    else warnings++;
+   }
+  }
+  let ball=null;const cars={};let active=0;
+  for(const [actorId,actor] of actors){
+   if(actor.kind==='other')continue;
+   const pose=physical.get(actorId);if(!pose)continue;
+   if(actor.kind==='ball')ball=pose;
+   else {cars['actor-'+actorId]={...pose};active++}
+  }
+  peakCars=Math.max(peakCars,active);
+  if(ball)output.push({time:frame.time,ball:{...ball},cars});
  }
- if(out.length<2)throw Error('Boxcars parsed the replay but no usable ball positions were reconstructed. The actor/coordinate schema may differ for this replay version.');
- const participants=[...players.values()];
- // Unknown teams are visually marked neutral via blue placeholder only; never assert they reflect true teams.
- return {format:'replay-forge-tracks-v1',title,source:'decoded',players:participants,frames:out,events,decode:{engine:'boxcars via rrrocket',warningCount:warnings,identityConfidence:'unresolved',teamConfidence:'unresolved',viewerSlots:true,quality:'partial'}};
+ if(output.length<2)throw Error('No usable ball physics frames decoded; replay schema may be unsupported');
+ const used=new Set();for(const frame of output)for(const id of Object.keys(frame.cars))used.add(id);
+ const players=[...carMetadata.values()].filter(p=>used.has(p.id));
+ return {format:'replay-forge-tracks-v1',title,source:'decoded',players,frames:output,events:[],decode:{engine:'boxcars',quality:'partial',warningCount:warnings,peakCars,totalCarSpawns,actorCount:players.length,identityConfidence:'unresolved',teamConfidence:'unresolved'}};
 }
 module.exports={normalize};
