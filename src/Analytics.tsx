@@ -2,7 +2,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {Activity,BarChart3,RefreshCcw,Square,AlertTriangle} from 'lucide-react';
 import {CartesianGrid,Line,LineChart,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts';
 import type {AnalysisEntry,AnalysisProgress,AnalysisPlayer} from './types';
-type Choice='averageSpeedUUPerS'|'peakSpeedUUPerS'|'secondsAbove130'|'boostSpent'|'secondsWithoutBoost'|'goals'|'saves'|'shots';
+type Choice='averageSpeedUUPerS'|'peakSpeedUUPerS'|'secondsAbove130'|'boostSpent'|'secondsWithoutBoost'|'goals'|'saves'|'shots'|'goalShotRatio'|'supersonicSeconds'|'averageBoostSpentPerMin'|'peakBoostUseRate';
 const options:{key:Choice;name:string;unit:string}[]=[
  {key:'averageSpeedUUPerS',name:'Average car speed',unit:'uu/s'},
  {key:'peakSpeedUUPerS',name:'Peak car speed',unit:'uu/s'},
@@ -11,7 +11,11 @@ const options:{key:Choice;name:string;unit:string}[]=[
  {key:'secondsWithoutBoost',name:'Observed zero-boost time',unit:'seconds'},
  {key:'goals',name:'Credited goals',unit:'goals'},
  {key:'saves',name:'Credited saves',unit:'saves'},
- {key:'shots',name:'Credited shots',unit:'shots'}
+ {key:'shots',name:'Credited shots',unit:'shots'},
+ {key:'goalShotRatio',name:'Credited goal / shot ratio',unit:'ratio'},
+ {key:'supersonicSeconds',name:'Supersonic time (estimated)',unit:'seconds'},
+ {key:'averageBoostSpentPerMin',name:'Observed boost use per minute',unit:'points/min'},
+ {key:'peakBoostUseRate',name:'Peak observed boost consumption rate',unit:'points/s'}
 ];
 const measure=(p:AnalysisPlayer,metric:Choice):number|null=>{if(metric==='goals'||metric==='saves'||metric==='shots')return p.credited?.[metric]??null;return p[metric]??null};
 export default function Analytics(){
