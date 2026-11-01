@@ -45,3 +45,11 @@ assert.deepEqual(shared.players[0].credited,{goals:2,saves:3,shots:5});
 assert.ok(shared.frames[0].cars['player-7']);
 assert.ok(shared.frames.at(-1).cars['player-7']);
 console.log('PRI association and respawn identity test passed');
+
+const nameVariants=structuredClone(linked);
+nameVariants.objects[5]='TAGame.PRI_TA:PlayerName';
+nameVariants.network_frames.frames[0].updated_actors[0].attribute={Str:'Alternate Player'};
+const alternate=normalize(nameVariants,'name-variants.replay');
+assert.equal(alternate.players[0].name,'Alternate Player','Accept alternate PRI name properties and strings');
+assert.equal(alternate.players[0].team,'unknown','Unresolved teams must not be fabricated');
+console.log('Player-name variant regression test passed');
