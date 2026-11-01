@@ -1,7 +1,7 @@
 // Derived metrics from normalized tracks. No speculative mechanic or game outcome claims.
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
 function summarize(track){
- const stats=new Map(track.players.map(p=>[p.id,{actorId:p.id,name:p.name,team:p.team,observedSeconds:0,secondsAbove130:0,secondsWithoutBoost:0,distanceUU:0,peakSpeedUUPerS:0,boostSpent:0,observedFrames:0}]));
+ const stats=new Map(track.players.map(p=>[p.id,{actorId:p.id,name:p.name,team:p.team,credited:p.credited||null,observedSeconds:0,secondsAbove130:0,secondsWithoutBoost:0,distanceUU:0,peakSpeedUUPerS:0,boostSpent:0,observedFrames:0}]));
  const frames=track.frames;
  for(let i=1;i<frames.length;i++){
   const a=frames[i-1],b=frames[i],dt=b.time-a.time;
