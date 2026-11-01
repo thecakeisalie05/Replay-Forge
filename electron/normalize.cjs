@@ -3,7 +3,8 @@
 // Missing links remain explicit unresolved actors rather than guessed players/teams.
 const xyz=v=>v&&[v.x,v.y,v.z].every(Number.isFinite)?[v.x,v.y,v.z]:null;
 const ident=v=>Number(v&&typeof v==='object'?v.value:v);
-const active=v=>{const a=v?.ActiveActor;return a?.active&&Number.isFinite(ident(a.actor))?ident(a.actor):null};
+const active=v=>{const a=v?.ActiveActor||v?.Actor;const raw=a?.actor??a?.actor_id??a?.value;const n=ident(raw);return a&&a.active!==false&&raw!==undefined&&Number.isFinite(n)?n:null};
+const readName=(v,names)=>{if(typeof v==='string')return v;for(const candidate of [v?.String,v?.Str,v?.Name,v?.string,v?.str])if(typeof candidate==='string'&&candidate.trim())return candidate;const idx=v?.Name?.value??v?.NameIndex??v?.Int;return Number.isInteger(idx)&&typeof names[idx]==='string'?names[idx]:null};
 const carClass=s=>/Car_(?:TA|Default)|Archetypes\.Car\./i.test(s);
 const ballClass=s=>/Ball_(?:TA|Default|Breakout|Hoops|Puck|Cube)|Archetypes\.Ball\./i.test(s);
 const priClass=s=>/(?:^|\.)PRI_(?:TA|KnockOut_TA)|PlayerReplicationInfo/i.test(s);
@@ -46,7 +47,7 @@ function normalize(input,title){
     const state=rigid(attr);
     if(state)poses.set(aid,{...poses.get(aid),...state});else warnings++;
    }
-   if(item.kind==='car'&&property==='Engine.Pawn:PlayerReplicationInfo'){
+   if(item.kind==='car'&&/(?:^|:)(?:PlayerReplicationInfo|PRI)$/.test(property)){
     const ref=active(attr);if(ref!==null)item.priId=ref;
    }
    if(item.kind==='boost'){
@@ -55,8 +56,8 @@ function normalize(input,title){
    }
    if(item.kind==='pri'){
     const p=pri.get(aid)||{name:null,teamId:null,stats:{}};
-    if(property==='Engine.PlayerReplicationInfo:PlayerName'&&typeof attr?.String==='string')p.name=attr.String;
-    if(property==='Engine.PlayerReplicationInfo:Team')p.teamId=active(attr);
+    if(/(?:^|:)(?:PlayerName|PlayerNamePrivate)$/.test(property)){const playerName=readName(attr,names);if(playerName)p.name=playerName}
+    if(/(?:^|:)Team$/.test(property))p.teamId=active(attr);
     const stat=property.match(/^TAGame.PRI_TA:Match(Goals|Saves|Shots|Assists|Score|EpicSaves)$/);
     if(stat&&Number.isFinite(attr?.Int))p.stats[stat[1].toLowerCase()]=attr.Int;
     pri.set(aid,p);
