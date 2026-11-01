@@ -8,7 +8,7 @@ const carClass=s=>/Car_(?:TA|Default)|Archetypes\.Car\./i.test(s);
 const ballClass=s=>/Ball_(?:TA|Default|Breakout|Hoops|Puck|Cube)|Archetypes\.Ball\./i.test(s);
 const priClass=s=>/(?:^|\.)PRI_(?:TA|KnockOut_TA)|PlayerReplicationInfo/i.test(s);
 const teamClass=s=>/Team_(?:Soccar_TA|TA)|Archetypes\.Teams\.Team/i.test(s);
-function rigid(v){const rb=v?.RigidBody;if(!rb)return null;const location=xyz(rb.location);if(!location)return null;const pose={position:location};const velocity=xyz(rb.linear_velocity);if(velocity)pose.velocity=velocity;return pose}
+function rigid(v){const rb=v?.RigidBody;if(!rb)return null;const location=xyz(rb.location);if(!location)return null;const pose={position:location};const velocity=xyz(rb.linear_velocity);if(velocity)pose.velocity=velocity;const q=rb.rotation;if(q&&[q.x,q.y,q.z,q.w].every(Number.isFinite))pose.orientation=[q.x,q.y,q.z,q.w];return pose}
 function normalize(input,title){
  const raw=input?.replay||input,frames=raw?.network_frames?.frames;
  if(!Array.isArray(frames))throw Error('Boxcars network frames missing');
