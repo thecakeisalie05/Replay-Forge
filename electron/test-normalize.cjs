@@ -23,10 +23,13 @@ console.log('Boxcars actor lifecycle and tagged attribute tests passed');
 const linked={objects:[
 'Archetypes.Ball.Ball_Default','Archetypes.Car.Car_Default','Archetypes.PRI.PRI_TA',
 'TAGame.RBActor_TA:ReplicatedRBState','Engine.Pawn:PlayerReplicationInfo',
-'Engine.PlayerReplicationInfo:PlayerName'
+'Engine.PlayerReplicationInfo:PlayerName','TAGame.PRI_TA:MatchGoals','TAGame.PRI_TA:MatchSaves','TAGame.PRI_TA:MatchShots'
 ],network_frames:{frames:[
  {time:0,new_actors:[{actor_id:1,object_id:0,initial_trajectory:{location:{x:0,y:0,z:100}}},{actor_id:7,object_id:2},{actor_id:8,object_id:1,initial_trajectory:{location:{x:10,y:0,z:30}}}],updated_actors:[
  {actor_id:7,object_id:5,attribute:{String:'Rocket Player'}},
+ {actor_id:7,object_id:6,attribute:{Int:2}},
+ {actor_id:7,object_id:7,attribute:{Int:3}},
+ {actor_id:7,object_id:8,attribute:{Int:5}},
  {actor_id:8,object_id:4,attribute:{ActiveActor:{active:true,actor:7}}}
  ]},
  {time:.05,updated_actors:[{actor_id:1,object_id:3,attribute:{RigidBody:{location:{x:10,y:0,z:100}}}}]},
@@ -38,6 +41,7 @@ const shared=normalize(linked,'linked.replay');
 assert.equal(shared.players.length,1,'Two cars owned by the same PRI should be one player');
 assert.equal(shared.players[0].name,'Rocket Player');
 assert.equal(shared.players[0].id,'player-7');
+assert.deepEqual(shared.players[0].credited,{goals:2,saves:3,shots:5});
 assert.ok(shared.frames[0].cars['player-7']);
 assert.ok(shared.frames.at(-1).cars['player-7']);
 console.log('PRI association and respawn identity test passed');
