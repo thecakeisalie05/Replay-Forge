@@ -22,12 +22,12 @@ function normalize(input,title){
  for(const frame of frames){
   if(!Number.isFinite(frame.time)||frame.time<=lastTime){warnings++;continue}lastTime=frame.time;
   for(const deleted of frame.deleted_actors||[]){
-   const aid=ident(deleted);actors.delete(aid);poses.delete(aid);boostComponents.delete(aid);boostValues.delete(aid);
+   const aid=ident(deleted);actors.delete(aid);poses.delete(aid);boostComponents.delete(aid);boostValues.delete(aid);reverseCarRefs.delete(aid);
    for(const [component,vehicle] of boostComponents)if(vehicle===aid){boostComponents.delete(component);boostValues.delete(component)}
   }
   for(const created of frame.new_actors||[]){
    const aid=ident(created.actor_id);if(!Number.isFinite(aid))continue;
-   poses.delete(aid);
+   poses.delete(aid);reverseCarRefs.delete(aid);
    const typeName=String(objects[ident(created.object_id)]||'');
    const spawnName=String(names[ident(created.name_id)]||'');
    const kind=ballClass(typeName)?'ball':carClass(typeName)?'car':priClass(typeName)?'pri':teamClass(typeName)?'team':/CarComponent_Boost_TA/.test(typeName)?'boost':'other';
@@ -58,7 +58,7 @@ function normalize(input,title){
     if(property==='TAGame.CarComponent_Boost_TA:ReplicatedBoostAmount'&&Number.isFinite(attr?.Byte))boostValues.set(aid,Math.min(100,Math.max(0,attr.Byte/255*100)));
    }
    if(item.kind==='pri'&&/(?:^|:)(?:Car|CarRef|Pawn|Vehicle|ReplicatedCar|ReplicatedPawn)$/.test(property)){
-    const carId=active(attr);if(carId!==null)reverseCarRefs.set(carId,aid);
+    const carId=active(attr);if(carId!==null){reverseCarRefs.set(carId,aid);const car=actors.get(carId);if(car?.kind==='car')car.priId=aid}
    }
    if(item.kind==='pri'){
     const p=pri.get(aid)||{name:null,teamId:null,stats:{}};
