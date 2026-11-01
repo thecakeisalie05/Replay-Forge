@@ -38,8 +38,14 @@ export default function Viewer3D({track,time,trails,vectors,follow}:Props){
  const walls=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(83,22,103)),new THREE.LineBasicMaterial({color:'#314b66',transparent:true,opacity:.45}));walls.position.y=11;scene.add(walls);
  const ball=createBallModel();scene.add(ball);
  const cars=new Map<string,THREE.Group>();
+ const tags=new Map<string,THREE.Sprite>();
+ const effectRoots=new Map<string,THREE.Group>();
  const arrows=new Map<string,THREE.ArrowHelper>();
  for(const player of track.players){const car=createCarModel(player.team);cars.set(player.id,car);scene.add(car);
+ const effects=new THREE.Group();car.add(effects);effectRoots.set(player.id,effects);
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=96;
+ const ctx=canvas.getContext('2d');if(ctx){ctx.fillStyle=player.team==='orange'?'rgba(90,43,20,.88)':player.team==='blue'?'rgba(18,58,93,.88)':'rgba(34,43,57,.88)';ctx.fillRect(0,5,512,82);ctx.fillStyle='#f7fbff';ctx.font='bold 36px Segoe UI, sans-serif';ctx.textAlign='center';const name=player.name.length>25?player.name.slice(0,24)+'…':player.name;ctx.fillText(name,256,59);}
+ const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));sprite.scale.set(11.5,2.2,1);sprite.renderOrder=8;scene.add(sprite);tags.set(player.id,sprite);
  const arrow=new THREE.ArrowHelper(new THREE.Vector3(0,0,1),new THREE.Vector3(),4,player.team==='blue'?'#77ceff':player.team==='orange'?'#ffce87':'#d9e0ec');arrows.set(player.id,arrow);scene.add(arrow)}
  const trailGroup=new THREE.Group();scene.add(trailGroup);
  let lastTrailFrame=-1,lastTrailEnabled=false;
@@ -55,7 +61,7 @@ export default function Viewer3D({track,time,trails,vectors,follow}:Props){
  const update=(p:Props)=>{Object.assign(state,p);const frames=p.track.frames;const i=frameAt(frames,p.time),a=frames[i],b=frames[Math.min(i+1,frames.length-1)];const t=a===b?0:THREE.MathUtils.clamp((p.time-a.time)/(b.time-a.time),0,1);
  // Replay coordinates: Rocket League X,Y horizontal, Z vertical. Three.js Y is vertical.
  const place=(pose:Pose,next:Pose)=>worldPose(interpolate(pose,next,t));
- ball.position.copy(place(a.ball,b.ball));for(const player of p.track.players){const car=cars.get(player.id)!,arrow=arrows.get(player.id)!;const pos=a.cars[player.id],next=b.cars[player.id]||pos;car.visible=!!pos;arrow.visible=!!pos&&p.vectors&&!!pos.velocity;if(!pos)continue;car.position.copy(place(pos,next));car.quaternion.copy(orientation(pos,next,t));arrow.position.copy(car.position);if(arrow.visible){const vel=worldPose(new THREE.Vector3(...pos.velocity!));if(vel.lengthSq()>1){const velocityMagnitude=vel.length();arrow.setDirection(vel.normalize());arrow.setLength(THREE.MathUtils.clamp(velocityMagnitude*.01,2,22))}}}
+ ball.position.copy(place(a.ball,b.ball));for(const player of p.track.players){const car=cars.get(player.id)!,arrow=arrows.get(player.id)!;const pos=a.cars[player.id],next=b.cars[player.id]||pos;car.visible=!!pos;const tag=tags.get(player.id)!;tag.visible=!!pos;arrow.visible=!!pos&&p.vectors&&!!pos.velocity;if(!pos)continue;car.position.copy(place(pos,next));tag.position.copy(car.position).add(new THREE.Vector3(0,3.1,0));car.quaternion.copy(orientation(pos,next,t));arrow.position.copy(car.position);if(arrow.visible){const vel=worldPose(new THREE.Vector3(...pos.velocity!));if(vel.lengthSq()>1){const velocityMagnitude=vel.length();arrow.setDirection(vel.normalize());arrow.setLength(THREE.MathUtils.clamp(velocityMagnitude*.01,2,22))}}}
  eventLayer.update(p.time,p.track);
  if(lastTrailFrame!==i||lastTrailEnabled!==p.trails){
   lastTrailFrame=i;lastTrailEnabled=p.trails;
@@ -71,7 +77,7 @@ export default function Viewer3D({track,time,trails,vectors,follow}:Props){
  pan= p.follow==='ball'?ball.position.clone():cars.get(p.follow)?.position.clone()||new THREE.Vector3(0,0,0);
  };
  const draw=()=>{animation=requestAnimationFrame(draw);const offset=new THREE.Vector3(Math.sin(az)*Math.cos(elv),Math.sin(elv),Math.cos(az)*Math.cos(elv)).multiplyScalar(dist);camera.position.copy(pan).add(offset);camera.lookAt(pan);renderer.render(scene,camera)};draw();update({track,time,trails,vectors,follow});
- sceneRef.current={update,destroy:()=>{cancelAnimationFrame(animation);resize.disconnect();renderer.domElement.removeEventListener('pointerdown',pointerDown);renderer.domElement.removeEventListener('pointermove',pointerMove);renderer.domElement.removeEventListener('pointerup',pointerUp);renderer.domElement.removeEventListener('wheel',wheel);scene.traverse(obj=>{if(obj instanceof THREE.Mesh||obj instanceof THREE.Line||obj instanceof THREE.LineSegments){obj.geometry.dispose();const m=obj.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m.dispose()}});eventLayer.dispose();renderer.dispose();host.removeChild(renderer.domElement)}};
+ sceneRef.current={update,destroy:()=>{cancelAnimationFrame(animation);resize.disconnect();renderer.domElement.removeEventListener('pointerdown',pointerDown);renderer.domElement.removeEventListener('pointermove',pointerMove);renderer.domElement.removeEventListener('pointerup',pointerUp);renderer.domElement.removeEventListener('wheel',wheel);scene.traverse(obj=>{if(obj instanceof THREE.Sprite){const m=obj.material as THREE.SpriteMaterial;m.map?.dispose();m.dispose()}if(obj instanceof THREE.Mesh||obj instanceof THREE.Line||obj instanceof THREE.LineSegments){obj.geometry.dispose();const m=obj.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m.dispose()}});eventLayer.dispose();renderer.dispose();host.removeChild(renderer.domElement)}};
  return()=>{sceneRef.current?.destroy();sceneRef.current=null};
  },[track]);
  useEffect(()=>{sceneRef.current?.update({track,time,trails,vectors,follow})},[track,time,trails,vectors,follow]);
