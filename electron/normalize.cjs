@@ -13,7 +13,7 @@ function normalize(input,title){
  const raw=input?.replay||input,frames=raw?.network_frames?.frames;
  if(!Array.isArray(frames))throw Error('Boxcars network frames missing');
  const objects=raw.objects||[],names=raw.names||[];
- const actors=new Map(),poses=new Map(),carLife=new Map(),pri=new Map(),teamActors=new Map();
+ const actors=new Map(),poses=new Map(),carLife=new Map(),pri=new Map(),teamActors=new Map(),boostComponents=new Map(),boostValues=new Map();
  const output=[];let warnings=0,lastTime=-Infinity,serial=0,peakCars=0,totalCarSpawns=0;
  for(const frame of frames){
   if(!Number.isFinite(frame.time)||frame.time<=lastTime){warnings++;continue}lastTime=frame.time;
@@ -25,12 +25,12 @@ function normalize(input,title){
    poses.delete(aid);
    const typeName=String(objects[ident(created.object_id)]||'');
    const spawnName=String(names[ident(created.name_id)]||'');
-   const kind=ballClass(typeName)?'ball':carClass(typeName)?'car':priClass(typeName)?'pri':teamClass(typeName)?'team':'other';
+   const kind=ballClass(typeName)?'ball':carClass(typeName)?'car':priClass(typeName)?'pri':teamClass(typeName)?'team':/CarComponent_Boost_TA/.test(typeName)?'boost':'other';
    const instance='actor-'+aid+'-'+(++serial);
    const item={kind,instance,aid,typeName,spawnName,priId:null};
    actors.set(aid,item);
    if(kind==='car'){carLife.set(instance,item);totalCarSpawns++}
-   if(kind==='pri'&&!pri.has(aid))pri.set(aid,{name:null,teamId:null});
+   if(kind==='pri'&&!pri.has(aid))pri.set(aid,{name:null,teamId:null,stats:{}});
    if(kind==='team'){
     const match=spawnName.match(/Team([01])\b/i)||typeName.match(/Team([01])\b/i);
     if(match)teamActors.set(aid,Number(match[1]));
@@ -48,10 +48,16 @@ function normalize(input,title){
    if(item.kind==='car'&&property==='Engine.Pawn:PlayerReplicationInfo'){
     const ref=active(attr);if(ref!==null)item.priId=ref;
    }
+   if(item.kind==='boost'){
+    if(property==='TAGame.CarComponent_TA:Vehicle'){const vehicleId=active(attr);if(vehicleId!==null)boostComponents.set(aid,vehicleId)}
+    if(property==='TAGame.CarComponent_Boost_TA:ReplicatedBoostAmount'&&Number.isFinite(attr?.Byte))boostValues.set(aid,Math.min(100,Math.max(0,attr.Byte/255*100)));
+   }
    if(item.kind==='pri'){
-    const p=pri.get(aid)||{name:null,teamId:null};
+    const p=pri.get(aid)||{name:null,teamId:null,stats:{}};
     if(property==='Engine.PlayerReplicationInfo:PlayerName'&&typeof attr?.String==='string')p.name=attr.String;
     if(property==='Engine.PlayerReplicationInfo:Team')p.teamId=active(attr);
+    const stat=property.match(/^TAGame.PRI_TA:Match(Goals|Saves|Shots|Assists|Score|EpicSaves)$/);
+    if(stat&&Number.isFinite(attr?.Int))p.stats[stat[1].toLowerCase()]=attr.Int;
     pri.set(aid,p);
    }
   }
@@ -59,7 +65,11 @@ function normalize(input,title){
   for(const [aid,item] of actors){
    const pose=poses.get(aid);if(!pose)continue;
    if(item.kind==='ball')ball={...pose};
-   if(item.kind==='car'){cars[item.instance]={...pose};activeCars++}
+   if(item.kind==='car'){
+    const amount=[...boostComponents].find(([,vehicle])=>vehicle===aid&&boostValues.has([...boostComponents].find(([component,v])=>v===vehicle)?.[0]));
+    const boost=amount?boostValues.get(amount[0]):undefined;
+    cars[item.instance]=boost===undefined?{...pose}:{...pose,boost};activeCars++
+   }
   }
   peakCars=Math.max(activeCars,peakCars);
   if(ball)output.push({time:frame.time,ball,cars});
@@ -73,7 +83,7 @@ function normalize(input,title){
   aliases.set(instance,canonical);
   if(!players.has(canonical)){
    const team=info?.teamId===null||info?.teamId===undefined?null:teamActors.get(info.teamId);
-   players.set(canonical,{id:canonical,name:info?.name||('Unresolved '+canonical),team:team===1?'orange':team===0?'blue':'unknown',teamKnown:team===0||team===1,identityKnown:car.priId!==null});
+   players.set(canonical,{id:canonical,name:info?.name||('Unresolved '+canonical),team:team===1?'orange':team===0?'blue':'unknown',teamKnown:team===0||team===1,identityKnown:car.priId!==null,credited:info?.stats||null});
   } else if(info?.name&&players.get(canonical).name.startsWith('Unresolved ')){
    players.get(canonical).name=info.name;
   }
@@ -85,6 +95,10 @@ function normalize(input,title){
  }
  const participants=[...players.values()].filter(p=>used.has(p.id));
  const linked=participants.filter(p=>p.identityKnown).length;
- return{format:'replay-forge-tracks-v1',title,source:'decoded',players:participants,frames:merged,events:[],decode:{engine:'boxcars',warningCount:warnings,quality:linked===participants.length?'partial':'partial-unresolved',peakCars,totalCarSpawns,actorInstances:carLife.size,playerIdentities:linked,identityConfidence:linked===participants.length?'linked':'partial',teamConfidence:participants.every(p=>p.teamKnown)?'linked':'partial'}};
+ const props=raw.properties||{};let date=null;
+ if(Array.isArray(props)){const match=props.find(x=>Array.isArray(x)&&x[0]==='Date');date=typeof match?.[1]==='string'?match[1]:match?.[1]?.String||match?.[1]?.Str||null}
+ else if(typeof props.Date==='string')date=props.Date;
+ if(date&&!Number.isFinite(Date.parse(date)))date=null;
+ return{format:'replay-forge-tracks-v1',title,recordedAt:date,source:'decoded',players:participants,frames:merged,events:[],decode:{engine:'boxcars',warningCount:warnings,quality:linked===participants.length?'partial':'partial-unresolved',peakCars,totalCarSpawns,actorInstances:carLife.size,playerIdentities:linked,identityConfidence:linked===participants.length?'linked':'partial',teamConfidence:participants.every(p=>p.teamKnown)?'linked':'partial'}};
 }
 module.exports={normalize};
