@@ -18,7 +18,8 @@ function normalize(input,title){
  for(const frame of frames){
   if(!Number.isFinite(frame.time)||frame.time<=lastTime){warnings++;continue}lastTime=frame.time;
   for(const deleted of frame.deleted_actors||[]){
-   const aid=ident(deleted);actors.delete(aid);poses.delete(aid);
+   const aid=ident(deleted);actors.delete(aid);poses.delete(aid);boostComponents.delete(aid);boostValues.delete(aid);
+   for(const [component,vehicle] of boostComponents)if(vehicle===aid){boostComponents.delete(component);boostValues.delete(component)}
   }
   for(const created of frame.new_actors||[]){
    const aid=ident(created.actor_id);if(!Number.isFinite(aid))continue;
@@ -62,12 +63,12 @@ function normalize(input,title){
    }
   }
   let ball=null,activeCars=0;const cars={};
+  const boostByVehicle=new Map();for(const [component,vehicle] of boostComponents){const amount=boostValues.get(component);if(amount!==undefined)boostByVehicle.set(vehicle,amount)}
   for(const [aid,item] of actors){
    const pose=poses.get(aid);if(!pose)continue;
    if(item.kind==='ball')ball={...pose};
    if(item.kind==='car'){
-    const amount=[...boostComponents].find(([,vehicle])=>vehicle===aid&&boostValues.has([...boostComponents].find(([component,v])=>v===vehicle)?.[0]));
-    const boost=amount?boostValues.get(amount[0]):undefined;
+    const boost=boostByVehicle.get(aid);
     cars[item.instance]=boost===undefined?{...pose}:{...pose,boost};activeCars++
    }
   }
