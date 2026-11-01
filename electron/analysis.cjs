@@ -1,5 +1,5 @@
 const fs=require('node:fs');const path=require('node:path');const {decode}=require('./boxcars.cjs');const {summarize}=require('./metrics.cjs');
-const REVISION=3;let running=false,cancelled=false;
+const REVISION=4;let running=false,cancelled=false;
 function cacheFile(app){return path.join(app.getPath('userData'),'analysis.json')}
 function read(app){try{const j=JSON.parse(fs.readFileSync(cacheFile(app),'utf8'));return j&&typeof j==='object'?j:{}}catch{return {}}}
 function write(app,results){const target=cacheFile(app);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target+'.tmp',JSON.stringify(results));fs.renameSync(target+'.tmp',target)}
