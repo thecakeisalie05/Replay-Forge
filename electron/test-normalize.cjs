@@ -78,3 +78,12 @@ assert.equal(unlinked.roster.length,2,'Header roster remains even without a PRI 
 assert.equal(unlinked.players[0].team,'unknown','Do not guess car team from roster ordering');
 assert.ok(unlinked.players[0].name.startsWith('Unresolved '),'Do not guess car name from roster ordering');
 console.log('Original Replay Forge header metadata / roster integration passed');
+
+const reverse=structuredClone(linked);
+reverse.objects.push('TAGame.PRI_TA:Car');
+reverse.network_frames.frames[0].updated_actors=reverse.network_frames.frames[0].updated_actors.filter(u=>!(u.actor_id===8&&u.object_id===4));
+reverse.network_frames.frames[0].updated_actors.push({actor_id:7,object_id:reverse.objects.length-1,attribute:{ActiveActor:{active:true,actor:8}}});
+reverse.network_frames.frames[3].updated_actors=[];
+const reverseResult=normalize(reverse,'reverse-link.replay');
+assert.equal(reverseResult.players.find(p=>p.name==='Rocket Player')?.id,'player-7','PRI-to-car reverse link resolves car identity');
+console.log('Reverse PRI-to-car identity regression test passed');
