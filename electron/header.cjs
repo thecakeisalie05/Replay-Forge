@@ -21,7 +21,7 @@ function header(raw,fallback){
  }
  for(const e of goals){if(!record(e))continue;const name=str(e.PlayerName);if(name&&!roster.some(p=>p.name===name))roster.push({id:'header-goal-'+roster.length,name,team:teamOf(e.PlayerTeam),credited:{},source:'header-goal'})}
  const date=str(p.get('Date'));
- return {title:str(p.get('ReplayName'))||fallback,date:date&&Number.isFinite(Date.parse(date))?date:null,
+ return {title:str(p.get('ReplayName'))||fallback,date:date||null,
   map:str(p.get('MapName'))||null,playlist:str(p.get('MatchType'))||null,
   teamSize:numeric(p.get('TeamSize'))??null,duration:numeric(p.get('RecordSeconds'))??null,
   scores:{blue:numeric(p.get('Team0Score'))??null,orange:numeric(p.get('Team1Score'))??null},
