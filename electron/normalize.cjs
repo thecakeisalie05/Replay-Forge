@@ -1,3 +1,4 @@
+const {header}=require('./header.cjs');
 // Boxcars -> Replay Forge track normalization.
 // Car actor IDs are ephemeral; PlayerReplicationInfo actors are the stable match identities.
 // Missing links remain explicit unresolved actors rather than guessed players/teams.
@@ -14,6 +15,7 @@ function normalize(input,title){
  const raw=input?.replay||input,frames=raw?.network_frames?.frames;
  if(!Array.isArray(frames))throw Error('Boxcars network frames missing');
  const objects=raw.objects||[],names=raw.names||[];
+ const match=header(raw,title);
  const actors=new Map(),poses=new Map(),carLife=new Map(),pri=new Map(),teamActors=new Map(),boostComponents=new Map(),boostValues=new Map();
  const output=[];let warnings=0,lastTime=-Infinity,serial=0,peakCars=0,totalCarSpawns=0;
  for(const frame of frames){
@@ -90,6 +92,18 @@ function normalize(input,title){
    players.get(canonical).name=info.name;
   }
  }
+ // Enrich PRI-confirmed identities from the header, never by arbitrary car array order.
+ const candidates=new Map();for(const r of match.roster){const key=r.name.toLocaleLowerCase();const list=candidates.get(key)||[];list.push(r);candidates.set(key,list)}
+ const claimed=new Set();
+ for(const p of players.values()){
+  if(!p.identityKnown||p.name.startsWith('Unresolved '))continue;
+  const matching=(candidates.get(p.name.toLocaleLowerCase())||[]).filter(r=>!claimed.has(r.id));
+  if(matching.length!==1)continue;
+  const r=matching[0];claimed.add(r.id);
+  if(p.team==='unknown'&&r.team!=='unknown'){p.team=r.team;p.teamKnown=true}
+  p.credited={...r.credited,...p.credited};
+  p.headerId=r.id;
+ }
  const used=new Set(),merged=[];
  for(const frame of output){
   const cars={};for(const [instance,pose] of Object.entries(frame.cars)){const mapped=aliases.get(instance)||instance;cars[mapped]=pose;used.add(mapped)}
@@ -97,10 +111,6 @@ function normalize(input,title){
  }
  const participants=[...players.values()].filter(p=>used.has(p.id));
  const linked=participants.filter(p=>p.identityKnown).length;
- const props=raw.properties||{};let date=null;
- if(Array.isArray(props)){const match=props.find(x=>Array.isArray(x)&&x[0]==='Date');date=typeof match?.[1]==='string'?match[1]:match?.[1]?.String||match?.[1]?.Str||null}
- else if(typeof props.Date==='string')date=props.Date;
- if(date&&!Number.isFinite(Date.parse(date)))date=null;
- return{format:'replay-forge-tracks-v1',title,recordedAt:date,source:'decoded',players:participants,frames:merged,events:[],decode:{engine:'boxcars',warningCount:warnings,quality:linked===participants.length?'partial':'partial-unresolved',peakCars,totalCarSpawns,actorInstances:carLife.size,playerIdentities:linked,identityConfidence:linked===participants.length?'linked':'partial',teamConfidence:participants.every(p=>p.teamKnown)?'linked':'partial'}};
+ return{format:'replay-forge-tracks-v1',title:match.title,recordedAt:match.date,metadata:{map:match.map,playlist:match.playlist,teamSize:match.teamSize,duration:match.duration,scores:match.scores,gameBuild:match.gameBuild,goalCount:match.goalCount},roster:match.roster,source:'decoded',players:participants,frames:merged,events:[],decode:{engine:'boxcars',warningCount:warnings,quality:linked===participants.length?'partial':'partial-unresolved',peakCars,totalCarSpawns,actorInstances:carLife.size,playerIdentities:linked,identityConfidence:linked===participants.length?'linked':'partial',teamConfidence:participants.every(p=>p.teamKnown)?'linked':'partial'}};
 }
 module.exports={normalize};
