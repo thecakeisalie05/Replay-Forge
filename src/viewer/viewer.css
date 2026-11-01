@@ -2,3 +2,20 @@
 .track-summary{border-top:1px solid #27384b;padding:17px 20px}.track-summary h3{margin:0 0 8px;font-size:14px}.track-summary h3 small{margin-left:10px;font-size:9px;color:#d9b477}.track-summary p{color:#8da4bf;font-size:11px}.track-scroll{max-height:275px;overflow:auto}.track-scroll table{min-width:800px}.track-scroll td,.track-scroll th{padding:10px}
 
 .viewer-roster{border-top:1px solid #263850;border-bottom:1px solid #263850;background:#0d1828;padding:11px 18px}.viewer-roster-head{display:flex;align-items:center;justify-content:space-between;gap:15px;font-size:12px}.viewer-roster-head span{font-size:11px;color:#95abc6}.roster-players{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.roster-player{border:1px solid #485467;border-left:3px solid #8f9eb1;color:#e4eaf5;background:#1c2736;padding:7px 10px;border-radius:5px;font-size:12px}.roster-player.team-blue{border-left-color:#46a9f7}.roster-player.team-orange{border-left-color:#f2a04f}.roster-player small{font-size:10px;color:#879bb0;margin-left:8px}.roster-empty,.viewer-roster p{font-size:10px;color:#8499b2;margin:8px 0 0}
+
+/* Viewer toolbar: title on its own line, actions in one responsive control strip. */
+.viewer-top{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:14px 18px;background:#101b2c}
+.viewer-title{min-width:0;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.viewer-title strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.viewer-title small{font-size:9px;letter-spacing:.65px;line-height:1.4}
+.viewer-actions{display:grid;grid-template-columns:minmax(190px,1fr) auto auto auto;gap:8px;align-items:stretch;min-width:0}
+.viewer-actions select{min-width:0;width:100%;max-width:none;overflow:hidden;text-overflow:ellipsis;color:#e3efff;background:#16263c;border:1px solid #3d5675;border-radius:7px;padding:9px 12px;font:inherit;font-size:12px}
+.viewer-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:37px;padding:8px 13px;white-space:nowrap;background:#1a2c43;color:#d3e8ff;border:1px solid #385675;border-radius:7px;font-size:12px}
+.viewer-actions button:first-of-type{background:#2a6592;border-color:#4388b4;color:white;font-weight:650}
+.viewer-actions button:disabled{opacity:.45;cursor:not-allowed}
+.viewer-actions button:hover:not(:disabled){filter:brightness(1.18)}
+.viewer-stage{height:clamp(390px,62vh,780px)}
+.viewer-playrow{gap:9px 13px}
+.viewer-controls{padding:13px 18px}
+@media(max-width:900px){.viewer-actions{grid-template-columns:minmax(150px,1fr) auto auto}.viewer-actions button:last-child{grid-column:3}}
+@media(max-width:650px){.viewer-actions{grid-template-columns:1fr 1fr}.viewer-actions select{grid-column:1/-1}.viewer-actions button{min-width:0}.viewer-title strong{white-space:normal;overflow-wrap:anywhere}}
