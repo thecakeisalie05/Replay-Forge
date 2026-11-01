@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {FolderOpen,Pause,Play,RotateCcw} from 'lucide-react';
 import Viewer3D from './Viewer3D';
+import TrackSummary from '../analytics/TrackSummary';
 import {demoTrack,validateTrack} from './model';
 import type {Track} from './model';
 import type {Replay} from '../types';
@@ -19,5 +20,5 @@ export default function ReplayViewer({replays}:{replays:Replay[]}){
  <div className="viewer-controls"><div className="viewer-playrow"><button className="viewer-play" onClick={()=>{if(time>=end)setTime(start);setPlaying(p=>!p)}}>{playing?<Pause size={17}/>:<Play size={17}/>}</button><strong>{stamp(time)}</strong><span>/ {stamp(end)}</span><select value={speed} onChange={e=>setSpeed(Number(e.target.value))}>{[.25,.5,1,1.5,2,4].map(v=><option key={v} value={v}>{v}×</option>)}</select><label><input type="checkbox" checked={trails} onChange={e=>setTrails(e.target.checked)}/> Trajectories</label><label><input type="checkbox" checked={vectors} onChange={e=>setVectors(e.target.checked)}/> Velocity vectors</label><select aria-label="Camera target" value={follow} onChange={e=>setFollow(e.target.value)}><option value="ball">Follow ball</option><option value="none">Fixed center</option>{track.players.map(p=><option key={p.id} value={p.id}>Follow {p.name}</option>)}</select></div>
  <div className="viewer-timeline"><input aria-label="Playback timeline" type="range" min={start} max={end} step={.01} value={time} onChange={e=>{setPlaying(false);setTime(Number(e.target.value))}}/>{track.events.map((ev,i)=><button key={i} style={{left:(100*(ev.time-start)/duration)+'%'}} title={ev.label} className={'event-pin event-'+ev.type} onClick={()=>{setTime(Math.max(start,Math.min(end,ev.time)));setPlaying(false)}} />)}</div>
  <div className="viewer-events"><strong>EVENTS</strong>{track.events.map((ev,i)=><button key={i} onClick={()=>{setTime(Math.max(start,Math.min(end,ev.time)));setPlaying(false)}}><span>{stamp(ev.time)}</span>{ev.label}</button>)}</div></div>
- <div className="viewer-footnote">Viewer supports Replay Forge normalized track JSON (v1). Native .replay loading is experimental; actor instances are not stable player identities. Trajectories are based on supplied or decoded frame data. Velocity vectors are approximate and depend on source data.</div></div>
+ <TrackSummary track={track}/><div className="viewer-footnote">Viewer supports Replay Forge normalized track JSON (v1). Native .replay loading is experimental; actor instances are not stable player identities. Trajectories are based on supplied or decoded frame data. Velocity vectors are approximate and depend on source data.</div></div>
 }
