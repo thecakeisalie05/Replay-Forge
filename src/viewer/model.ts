@@ -2,7 +2,7 @@ export type Vec3=[number,number,number];
 export type Pose={position:Vec3;yaw?:number;velocity?:Vec3;boost?:number};
 export type Frame={time:number;ball:Pose;cars:Record<string,Pose>};
 export type ReplayEvent={time:number;type:string;label:string;position?:Vec3;actorId?:string;confidence?:number;detector?:string};
-export type Track={format:'replay-forge-tracks-v1';title:string;source:'demo'|'decoded';players:{id:string;name:string;team:'blue'|'orange'}[];frames:Frame[];events:ReplayEvent[]};
+export type Track={format:'replay-forge-tracks-v1';title:string;source:'demo'|'decoded';players:{id:string;name:string;team:'blue'|'orange'|'unknown'}[];frames:Frame[];events:ReplayEvent[]};
 const vec=(x:number,y:number,z:number):Vec3=>[x,y,z];
 export function demoTrack():Track{
  const frames:Frame[]=[];const events:ReplayEvent[]=[{time:0,type:'kickoff',label:'Kickoff'},{time:12,type:'touch',label:'Ball challenge (synthetic)'},{time:30,type:'shot',label:'Shot opportunity (synthetic)'},{time:47,type:'goal',label:'Goal (synthetic)'}];
@@ -23,7 +23,7 @@ export function validateTrack(raw:unknown):Track {
  if(v.frames.length<2||v.frames.length>250000)throw Error('Track must contain 2 to 250000 frames');
  if(v.players.length>1024)throw Error('Track contains more than 1024 car actor identities; decoder output may be invalid');
  const ids=new Set<string>();
- for(const p of v.players){if(typeof p.id!=='string'||typeof p.name!=='string'||!['blue','orange'].includes(p.team)||ids.has(p.id))throw Error('Invalid player entry');ids.add(p.id)}
+ for(const p of v.players){if(typeof p.id!=='string'||typeof p.name!=='string'||!['blue','orange','unknown'].includes(p.team)||ids.has(p.id))throw Error('Invalid player entry');ids.add(p.id)}
  const check=(p:Pose)=>p&&Array.isArray(p.position)&&p.position.length===3&&p.position.every(x=>typeof x==='number'&&Number.isFinite(x)&&Math.abs(x)<1000000)&&
  (p.yaw===undefined||Number.isFinite(p.yaw))&&(p.boost===undefined||(Number.isFinite(p.boost)&&p.boost>=0&&p.boost<=100))&&
  (p.velocity===undefined||(Array.isArray(p.velocity)&&p.velocity.length===3&&p.velocity.every(Number.isFinite)));
