@@ -43,5 +43,34 @@ export function createArenaDecorations():THREE.Group {
   const highlight=new THREE.Mesh(new THREE.BoxGeometry(19,.08,.24),new THREE.MeshBasicMaterial({color:end===1?'#f19a56':'#4da5f2'}));
   highlight.position.set(0,.06,end*51);group.add(highlight);
  }
+
+ // Stadium perimeter, low-profile illuminated boundary and tiered stands.
+ const rimMaterial=new THREE.MeshStandardMaterial({color:'#20384d',metalness:.52,roughness:.47});
+ const rowMaterial=new THREE.MeshStandardMaterial({color:'#111d30',metalness:.18,roughness:.78});
+ for(const side of [-1,1]){
+  const strip=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,104),rimMaterial);
+  strip.position.set(side*42.5,.58,0);group.add(strip);
+  const stands=new THREE.Mesh(new THREE.BoxGeometry(12,5,112),rowMaterial);
+  stands.position.set(side*50,2.5,0);group.add(stands);
+  const edge=new THREE.Mesh(new THREE.BoxGeometry(.15,.1,105),new THREE.MeshBasicMaterial({color:side<0?'#378ed9':'#d27d3b'}));
+  edge.position.set(side*42,.22,0);group.add(edge);
+ }
+ for(const end of [-1,1]){
+  const stands=new THREE.Mesh(new THREE.BoxGeometry(100,6,9),rowMaterial);
+  stands.position.set(0,3,end*58);group.add(stands);
+  const frameMaterial=new THREE.MeshStandardMaterial({color:'#8399af',metalness:.7,roughness:.35});
+  for(const x of [-9.5,9.5]){
+   const post=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,7.2,10),frameMaterial);
+   post.position.set(x,3.6,end*51.8);group.add(post);
+  }
+  const crossbar=new THREE.Mesh(new THREE.BoxGeometry(19,.2,.2),frameMaterial);
+  crossbar.position.set(0,7.2,end*51.8);group.add(crossbar);
+ }
+ // Small pad markers are visual landmarks only, not replay-derived pickup state.
+ const padMat=new THREE.MeshBasicMaterial({color:'#c99d52',transparent:true,opacity:.45});
+ for(const x of [-28,-14,14,28])for(const z of [-36,-18,18,36]){
+  const pad=new THREE.Mesh(new THREE.CircleGeometry(.55,20),padMat);
+  pad.rotation.x=-Math.PI/2;pad.position.set(x,.07,z);group.add(pad);
+ }
  return group;
 }
