@@ -17,7 +17,7 @@ Build a Windows installer:
 npm run build
 ```
 
-Installer output: `release/`. GitHub Actions: [Electron Windows installer](.github/workflows/electron-windows.yml) (manually run for an installer build artifact, or tag `desktop-v*` to trigger a prerelease). A GitHub-hosted Windows build is **not yet verified**.
+Installer output: `release/`. GitHub Actions: [Electron Windows installer](.github/workflows/electron-windows.yml) (manually run for an installer build artifact, or tag `desktop-v*` to trigger a prerelease). CI is run on each push; inspect the latest Actions run before assuming an installer has passed.
 
 ### Currently implemented
 
@@ -30,11 +30,11 @@ Installer output: `release/`. GitHub Actions: [Electron Windows installer](.gith
 ### Not yet implemented
 
 - Verified end-to-end native replay-to-physics decoding across game versions
-- Advanced metadata and real match statistics
-- Accurate player/team attribution, analytics dashboards, production-quality arena assets, mechanics detection
-- Scalable SQLite data layer, automatic parser installation, cancellation and paging
+- Full metadata coverage and official match statistics beyond supported PRI counters
+- Accurate player/team attribution across all replay versions, production-quality arena assets, validated named mechanics
+- Scalable SQLite data layer, user-configurable settings, watcher-based folder import and pagination
 
-The Replay Viewer now includes a Three.js reconstructed scene, synthetic demonstration, a JSON track importer, and an experimental Rust Boxcars decoder with a normalization bridge. **Native replay reconstruction has not yet been validated against real replays.** Analytics and mechanics detection are explicitly unavailable. Do not mistake indexed file metadata for game metrics.
+The Replay Viewer now includes a Three.js reconstructed scene, synthetic demonstration, a JSON track importer, and an experimental Rust Boxcars decoder with a normalization bridge. **Native replay reconstruction has not yet been validated against real replays.** Experimental cached directory analytics (speed, height-based air time, observed boost and available credited goals/saves/shots) and low-confidence event candidates are now available. Validated mechanic classification and full possession/50-50 outcomes are still unavailable. Do not mistake indexed file metadata for game metrics.
 
 ## Legacy prototype
 
@@ -56,4 +56,8 @@ CI automatically runs on pushes to `main`, compiles the Rust helper, tests the n
 
 ### Actor identity caveat
 
-The decoder now tracks actor lifecycles independently of player identities; historical car actor counts can exceed 16 without rejecting a match. The renderer currently labels actor instances rather than authentic players, and team colors are not reliable until PRI/team references are decoded.
+The decoder tracks car actor lifecycles independently of player identities. Historical actor counts can exceed 16 without rejecting a match. When Engine.Pawn:PlayerReplicationInfo links are available, respawned actors are grouped under one player; unresolved identities remain separately labeled, and unknown teams use neutral styling.
+
+## Analytics and detectors
+
+The **Analytics** workspace can batch-decode imported replay files, cache data by SHA-256 and plot basic observed movement and available credited match totals by resolved player name. Decoding happens locally in an isolated helper process. A stop control takes effect between replay files. The **Replay Viewer** can show candidate events from versioned detectors. These are not calibrated mechanic classifications. See [detectors](docs/detectors.md) and [feature inventory](docs/roadmap.md).
