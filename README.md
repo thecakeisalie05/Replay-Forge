@@ -53,3 +53,7 @@ Never modify imported `.replay` files. Keep source replays on disk, compute deri
 The Windows packaging workflow compiles the Rust `decoder` crate and bundles `replay-forge-decoder.exe` into the Electron NSIS installer. Select an imported replay in the Replay Viewer and choose **Decode with Boxcars**. This is an experimental decoder; not all network schemas, rotations, team assignments or game modes are yet supported. See [decoder integration](docs/boxcars-integration.md) and [viewer architecture](docs/viewer-architecture.md).
 
 CI automatically runs on pushes to `main`, compiles the Rust helper, tests the normalization fixture, checks Electron syntax and builds the NSIS installer. Build success and actual replay fidelity must be verified separately.
+
+### Actor identity caveat
+
+The decoder now tracks actor lifecycles independently of player identities; historical car actor counts can exceed 16 without rejecting a match. The renderer currently labels actor instances rather than authentic players, and team colors are not reliable until PRI/team references are decoded.
