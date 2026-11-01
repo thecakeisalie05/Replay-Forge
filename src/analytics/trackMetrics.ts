@@ -1,5 +1,5 @@
 import type {Track,Pose} from '../viewer/model';
-export type TrackMetric={actorId:string;name:string;samples:number;observedSeconds:number;distanceUU:number;averageSpeedUUPerS:number|null;peakSpeedUUPerS:number|null;airSeconds:number;zeroBoostSeconds:number;boostSpent:number;coverage:number};
+export type TrackMetric={actorId:string;name:string;credited?:{goals?:number;saves?:number;shots?:number}|null;samples:number;observedSeconds:number;distanceUU:number;averageSpeedUUPerS:number|null;peakSpeedUUPerS:number|null;airSeconds:number;zeroBoostSeconds:number;boostSpent:number;coverage:number};
 const norm=(v:number[])=>Math.hypot(v[0],v[1],v[2]);
 const dist=(a:number[],b:number[])=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
 /** Conservative descriptive metrics of observed samples; no claims about game-credited stats. */
@@ -24,7 +24,7 @@ export function summarizeTrack(track:Track):TrackMetric[]{
   if(a.boost!==undefined&&b.boost!==undefined&&b.boost<a.boost)boostSpent+=a.boost-b.boost;
  }
  const span=frames.length>1?frames[frames.length-1].time-frames[0].time:0;
- return {actorId:player.id,name:player.name,samples,observedSeconds,distanceUU,
+ return {actorId:player.id,name:player.name,credited:player.credited,samples,observedSeconds,distanceUU,
  averageSpeedUUPerS:observedSeconds?distanceUU/observedSeconds:null,
  peakSpeedUUPerS:samples?peak:null,airSeconds,zeroBoostSeconds,boostSpent,
  coverage:span>0?Math.min(1,observedSeconds/span):0};
