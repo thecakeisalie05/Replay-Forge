@@ -34,7 +34,7 @@ Installer output: `release/`. GitHub Actions: [Electron Windows installer](.gith
 - Accurate player/team attribution across all replay versions, production-quality arena assets, validated named mechanics
 - Scalable SQLite data layer, user-configurable settings, watcher-based folder import and pagination
 
-The Replay Viewer now includes a Three.js reconstructed scene, synthetic demonstration, a JSON track importer, and an experimental Rust Boxcars decoder with a normalization bridge. **Native replay reconstruction has not yet been validated against real replays.** Experimental cached directory analytics (speed, height-based air time, observed boost and available credited goals/saves/shots) and low-confidence event candidates are now available. Validated mechanic classification and full possession/50-50 outcomes are still unavailable. Do not mistake indexed file metadata for game metrics.
+The Replay Viewer now includes a Three.js reconstructed scene, synthetic demonstration, a JSON track importer, and an experimental Rust Boxcars decoder with a normalization bridge. **Native replay reconstruction has not yet been validated against real replays.** Experimental cached directory analytics (speed, height-based air time, observed boost and available credited goals/saves/shots) and low-confidence event candidates are now available. Mechanics Lab supports review and JSON export of candidate annotations. Validated mechanic classification and full possession/50-50 outcomes are still unavailable. Do not mistake indexed file metadata for game metrics.
 
 ## Legacy prototype
 
