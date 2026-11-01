@@ -5,3 +5,13 @@
 .settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.settings-card{padding:22px}.settings-card h2{display:flex;align-items:center;gap:9px}.settings-card p{color:#889cb5;font-size:12px;line-height:1.6}.settings-card button{display:flex;align-items:center;gap:6px}.setting-toggle{display:flex;align-items:center;gap:9px;padding:16px 0;font-size:13px}.compact table td{padding:7px 12px}.compact table th{padding:9px 12px}@media(max-width:1000px){.settings-grid{grid-template-columns:1fr}}
 
 .lab-workspace{display:flex;flex-direction:column;gap:18px}.lab-toolbar{padding:20px;display:flex;align-items:center;justify-content:space-between;gap:20px}.lab-toolbar h2{font-size:17px}.lab-toolbar p,.lab-disclaimer{font-size:12px;color:#92a5bc;line-height:1.5}.lab-toolbar select{max-width:260px}.lab-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.lab-workspace select,.lab-workspace .lab-rows input{background:#142137;border:1px solid #3a4e68;color:#cbdced;border-radius:7px;padding:9px;font-size:12px}.lab-workspace button{display:inline-flex;align-items:center;gap:6px}.lab-rows{max-height:460px}.lab-rows input{min-width:145px;width:100%}.lab-decisions{display:flex;gap:4px}.lab-decisions button{border:1px solid #3b5069;color:#a6b7c9;background:#1b2e43;border-radius:5px;padding:8px}.lab-decisions button.is-confirmed{background:#1b574f;color:#a7f6dc;border-color:#4ca78f}.lab-decisions button.is-rejected{background:#63343c;color:#f7b7bf;border-color:#b45c69}.lab-disclaimer{display:flex;align-items:center;gap:7px}@media(max-width:1050px){.lab-toolbar{flex-direction:column;align-items:flex-start}.lab-stats{grid-template-columns:repeat(2,1fr)}}
+
+/* Settings is a dedicated full-width application workspace, not a contextual inspector. */
+.shell.settings-mode{grid-template-columns:244px minmax(0,1fr)}
+.settings-mode .main{background:#0d131c}
+.settings-mode .page{max-width:1120px}
+.settings-mode .page-head{border-bottom:1px solid #293a51;padding-bottom:22px}
+.settings-mode .settings-card{min-height:190px}
+.settings-mode .settings-card h2{font-size:15px}
+.settings-mode .settings-card .info{padding-bottom:10px;border-bottom:1px solid #263449}
+@media(max-width:820px){.shell.settings-mode{grid-template-columns:70px minmax(0,1fr)}}
